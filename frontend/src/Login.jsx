@@ -13,6 +13,7 @@ const Login = () => {
   const [forgotAnimation, setForgotAnimation] = useState("");
   const [signInButtonAnimation, setSignInButtonAnimation] = useState("");
   const [registerButtonAnimation, setRegisterButtonAnimation] = useState("");
+  const [googleProfileImage, setGoogleProfileImage] = useState("");
   const [timesClicked, setTimesClicked] = useState(0);
   const [signinFields, setSigninFields] = useState({
     username: "",
@@ -90,7 +91,7 @@ const Login = () => {
     }
   };
 
-  const handleRegister = async() => {
+  const handleRegister = async () => {
     if (
       signUpFields.username.trim().toLowerCase() === "" ||
       signUpFields.firstname.trim() === "" ||
@@ -107,7 +108,9 @@ const Login = () => {
       return;
     }
     for (const citizen of citizens) {
-      if (citizen.ctzn_username === signUpFields.username.trim().toLowerCase()) {
+      if (
+        citizen.ctzn_username === signUpFields.username.trim().toLowerCase()
+      ) {
         alert("Username already exists");
         return;
       }
@@ -164,16 +167,14 @@ const Login = () => {
           <Button
             onClick={() => {
               if (current !== "signin") {
-                setSignUpFields(
-                  {
-                    username: "",
-                    firstname: "",
-                    lastname: "",
-                    email: "",
-                    password: "",
-                    confirmpassword: "",
-                  }
-                )
+                setSignUpFields((signUpFields) => ({
+                  ...signUpFields,
+                  username: "",
+                  firstname: "",
+                  lastname: "",
+                  password: "",
+                  confirmpassword: "",
+                }));
                 if (current === "register") {
                   setAnimation("translateToLeft 750ms ease-in-out");
                   setSignInButtonAnimation("signInMoveLeft 750ms ease-in-out");
@@ -262,7 +263,11 @@ const Login = () => {
           <Button
             onClick={() => {
               if (current !== "register") {
-                if(setIsRegistered) setIsRegistered(true);
+                setSignUpFields((signUpFields) => ({
+                  ...signUpFields,
+                  email: "",
+                }))
+                if (setIsRegistered) setIsRegistered(true);
                 if (current === "signin") {
                   setAnimation("translateToRight 750ms ease-in-out");
                   setSignInButtonAnimation("signInMoveRight 750ms ease-in-out");
@@ -373,19 +378,19 @@ const Login = () => {
               animationFillMode: "forwards",
               alignItems: "center",
               justifyContent: "flex-start",
-              width: "90vw",
+              width: "135vw",
 
               "@keyframes translateToRight": {
                 "0%": {
                   transform: "translateX(0)",
                 },
                 "100%": {
-                  transform: "translateX(-50%)",
+                  transform: "translateX(-33%)",
                 },
               },
               "@keyframes translateToLeft": {
                 "0%": {
-                  transform: "translateX(-50%)",
+                  transform: "translateX(-33%)",
                 },
                 "100%": {
                   transform: "translateX(0)",
@@ -413,10 +418,10 @@ const Login = () => {
                   transform: "translate(0,-100%)",
                 },
                 "25%": {
-                  transform: "translate(-50%,-100%)",
+                  transform: "translate(-33%,-100%)",
                 },
                 "100%": {
-                  transform: "translate(-50%,0)",
+                  transform: "translate(-33%,0)",
                 },
               },
             }}
@@ -527,10 +532,11 @@ const Login = () => {
                   marginTop: "5vh",
                 }}
               >
-                <GoogleLoginButton 
+                <GoogleLoginButton
                   signUpFields={signUpFields}
-                  setSignUpFields={setSignUpFields} 
-                  setIsRegistered={setIsRegistered} 
+                  setSignUpFields={setSignUpFields}
+                  setIsRegistered={setIsRegistered}
+                  setGoogleProfileImage={setGoogleProfileImage}
                 />
                 <Button
                   onClick={handleLogin}
@@ -552,29 +558,44 @@ const Login = () => {
             </Box>
 
             {/* Register */}
+
             <Box
               sx={{
                 display: "flex",
-                flexDirection: "column",
+                flexDirection: "row",
                 alignItems: "center",
-                justifyContent: "flex-start",
-                width: "45vw",
+                justifyContent: "center",
+                width: "90vw",
                 height: "100%",
               }}
             >
-              <Typography
-                sx={{
-                  color: "white",
-                  fontSize: "2rem",
-                  fontWeight: "bold",
-                  fontFamily: "Inter",
-                  zIndex: 1,
-                  marginBottom: "5vh",
-                }}
-              >
-                Create an Account
-              </Typography>
-              <input
+              {/* Part 1 */}
+
+              {isRegistered ? (
+                // Not Through Google
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "45vw",
+                    height: "100%",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "white",
+                      fontSize: "2rem",
+                      fontWeight: "bold",
+                      fontFamily: "Inter",
+                      zIndex: 1,
+                      marginBottom: "3.5vh",
+                    }}
+                  >
+                    Create an Account
+                  </Typography>
+                  {/* <input
                 type="text"
                 name="username"
                 onChange={handleInputRegister}
@@ -583,7 +604,7 @@ const Login = () => {
                 style={{
                   width: "55%",
                   height: "1.5rem",
-                  marginBottom: "5vh",
+                  marginBottom: "3.5vh",
                   borderRadius: "20px",
                   border: "none",
                   outline: "#013C38 solid 1px",
@@ -593,52 +614,52 @@ const Login = () => {
                   fontFamily: "Inter",
                   backgroundColor: "white",
                 }}
-              />
-              {!isRegistered ? null : (
-                <input
-                  type="text"
-                  name="firstname"
-                  onChange={handleInputRegister}
-                  value={signUpFields.firstname}
-                  placeholder="First Name"
-                  style={{
-                    width: "55%",
-                    height: "1.5rem",
-                    marginBottom: "5vh",
-                    borderRadius: "20px",
-                    border: "none",
-                    outline: "#013C38 solid 1px",
-                    padding: "0.5rem",
-                    paddingLeft: "1rem",
-                    fontSize: "1rem",
-                    fontFamily: "Inter",
-                    backgroundColor: "white",
-                  }}
-                />
-              )}
-              {!isRegistered ? null : (
-                <input
-                  type="text"
-                  name="lastname"
-                  onChange={handleInputRegister}
-                  value={signUpFields.lastname}
-                  placeholder="Last Name"
-                  style={{
-                    width: "55%",
-                    height: "1.5rem",
-                    marginBottom: "5vh",
-                    borderRadius: "20px",
-                    border: "none",
-                    outline: "#013C38 solid 1px",
-                    padding: "0.5rem",
-                    paddingLeft: "1rem",
-                    fontSize: "1rem",
-                    fontFamily: "Inter",
-                    backgroundColor: "white",
-                  }}
-                />
-              )}
-              <input
+              /> */}
+                  {!isRegistered ? null : (
+                    <input
+                      type="text"
+                      name="firstname"
+                      onChange={handleInputRegister}
+                      value={signUpFields.firstname}
+                      placeholder="First Name"
+                      style={{
+                        width: "55%",
+                        height: "1.5rem",
+                        marginBottom: "3.5vh",
+                        borderRadius: "20px",
+                        border: "none",
+                        outline: "#013C38 solid 1px",
+                        padding: "0.5rem",
+                        paddingLeft: "1rem",
+                        fontSize: "1rem",
+                        fontFamily: "Inter",
+                        backgroundColor: "white",
+                      }}
+                    />
+                  )}
+                  {!isRegistered ? null : (
+                    <input
+                      type="text"
+                      name="lastname"
+                      onChange={handleInputRegister}
+                      value={signUpFields.lastname}
+                      placeholder="Last Name"
+                      style={{
+                        width: "55%",
+                        height: "1.5rem",
+                        marginBottom: "3.5vh",
+                        borderRadius: "20px",
+                        border: "none",
+                        outline: "#013C38 solid 1px",
+                        padding: "0.5rem",
+                        paddingLeft: "1rem",
+                        fontSize: "1rem",
+                        fontFamily: "Inter",
+                        backgroundColor: "white",
+                      }}
+                    />
+                  )}
+                  {/* <input
                 type="password"
                 name="password"
                 onChange={handleInputRegister}
@@ -647,7 +668,7 @@ const Login = () => {
                 style={{
                   width: "55%",
                   height: "1.5rem",
-                  marginBottom: "5vh",
+                  marginBottom: "3.5vh",
                   borderRadius: "20px",
                   border: "none",
                   outline: "#013C38 solid 1px",
@@ -667,7 +688,7 @@ const Login = () => {
                 style={{
                   width: "55%",
                   height: "1.5rem",
-                  marginBottom: "5vh",
+                  marginBottom: "3.5vh",
                   borderRadius: "20px",
                   border: "none",
                   outline: "#013C38 solid 1px",
@@ -677,40 +698,335 @@ const Login = () => {
                   fontFamily: "Inter",
                   backgroundColor: "white",
                 }}
-              />
-              { !isRegistered ? null : (<input
-                type="text"
-                name="email"
-                onChange={handleInputRegister}
-                value={signUpFields.email}
-                placeholder="Email"
-                style={{
-                  width: "55%",
-                  height: "1.5rem",
-                  marginBottom: "5vh",
-                  borderRadius: "20px",
-                  border: "none",
-                  outline: "#013C38 solid 1px",
-                  padding: "0.5rem",
-                  paddingLeft: "1rem",
-                  fontSize: "1rem",
-                  fontFamily: "Inter",
-                  backgroundColor: "white",
-                }}
-              />)}
+              /> */}
+                  {!isRegistered ? null : (
+                    <input
+                      type="text"
+                      name="email"
+                      onChange={handleInputRegister}
+                      value={signUpFields.email}
+                      placeholder="Email"
+                      style={{
+                        width: "55%",
+                        height: "1.5rem",
+                        marginBottom: "3.5vh",
+                        borderRadius: "20px",
+                        border: "none",
+                        outline: "#013C38 solid 1px",
+                        padding: "0.5rem",
+                        paddingLeft: "1rem",
+                        fontSize: "1rem",
+                        fontFamily: "Inter",
+                        backgroundColor: "white",
+                      }}
+                    />
+                  )}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      width: "57%",
+                      height: "1.5rem",
+                      marginBottom: "3.5vh",
+                      borderRadius: "20px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      name="code"
+                      onChange={handleInputRegister}
+                      value={signUpFields.password}
+                      placeholder="Code"
+                      style={{
+                        width: "50%",
+                        height: "1.5rem",
+                        borderRadius: "20px",
+                        border: "none",
+                        outline: "#013C38 solid 1px",
+                        padding: "0.5rem",
+                        paddingLeft: "1rem",
+                        fontSize: "1rem",
+                        fontFamily: "Inter",
+                        backgroundColor: "white",
+                        marginRight: "2.5%",
+                      }}
+                    />
+                    <Button
+                      sx={{
+                        color: "white",
+                        backgroundColor: "#013C38",
+                        width: "50%",
+                        height: "5vh",
+                        borderRadius: "20px",
+                        textTransform: "none",
+                      }}
+                    >
+                      Send Code
+                    </Button>
+                  </Box>
+                  <Button
+                    onClick={handleRegister}
+                    sx={{
+                      color: "white",
+                      backgroundColor: "#013C38",
+                      width: "57%",
+                      height: "5vh",
+                      borderRadius: "20px",
+                      textTransform: "none",
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </Box>
+              ) : (
+                // Through Google
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "45vw",
+                    height: "100%",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "white",
+                      fontSize: "2rem",
+                      fontWeight: "bold",
+                      fontFamily: "Inter",
+                      zIndex: 1,
+                      marginBottom: "3.5vh",
+                    }}
+                  >
+                    Create an Account
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      maxWidth: "55%",
+                      padding: "0.5rem",
+                      paddingLeft: "1rem",
+                      height: "4vh",
+                      marginBottom: "7.5vh",
+                      borderRadius: "25px",
+                      backgroundColor: "#2C6958",
+                    }}
+                  >
+                    <img 
+                      src="../src/resources/google.png" 
+                      alt="google" 
+                      width={"35"}
+                      style={{
+                        marginLeft: "-.25vw",
+                        
+                      }} 
+                    />
 
-              <Button
-                onClick={handleRegister}
+                    <img 
+                      src={googleProfileImage} 
+                      alt="" 
+                      width={30} 
+                      style={{
+                        borderRadius: "50%",
+                        marginLeft: ".9rem",
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        color: "#F4F4F4",
+                        fontSize: "1rem",
+                        fontWeight: "400",
+                        fontFamily: "Inter",
+                        marginLeft: ".5rem",
+                        marginRight: "1rem",
+                      
+                      }}
+                    >
+                      {signUpFields.email}
+                    </Typography>
+                  </Box>
+                  <input
+                    type="text"
+                    name="username"
+                    onChange={handleInputRegister}
+                    value={signUpFields.username}
+                    placeholder="Username"
+                    style={{
+                      width: "55%",
+                      height: "1.5rem",
+                      marginBottom: "7.5vh",
+                      borderRadius: "20px",
+                      border: "none",
+                      outline: "#013C38 solid 1px",
+                      padding: "0.5rem",
+                      paddingLeft: "1rem",
+                      fontSize: "1rem",
+                      fontFamily: "Inter",
+                      backgroundColor: "white",
+                    }}
+                  />
+
+                  {/* <input
+                    type="password"
+                    name="password"
+                    onChange={handleInputRegister}
+                    value={signUpFields.password}
+                    placeholder="Password"
+                    style={{
+                      width: "55%",
+                      height: "1.5rem",
+                      marginBottom: "3.5vh",
+                      borderRadius: "20px",
+                      border: "none",
+                      outline: "#013C38 solid 1px",
+                      padding: "0.5rem",
+                      paddingLeft: "1rem",
+                      fontSize: "1rem",
+                      fontFamily: "Inter",
+                      backgroundColor: "white",
+                    }}
+                  />
+                  <input
+                    type="password"
+                    name="confirmpassword"
+                    onChange={handleInputRegister}
+                    value={signUpFields.confirmpassword}
+                    placeholder="Confirm Password"
+                    style={{
+                      width: "55%",
+                      height: "1.5rem",
+                      marginBottom: "3.5vh",
+                      borderRadius: "20px",
+                      border: "none",
+                      outline: "#013C38 solid 1px",
+                      padding: "0.5rem",
+                      paddingLeft: "1rem",
+                      fontSize: "1rem",
+                      fontFamily: "Inter",
+                      backgroundColor: "white",
+                    }}
+                  /> */}
+                  <Button
+                    onClick={handleRegister}
+                    sx={{
+                      color: "white",
+                      backgroundColor: "#013C38",
+                      width: "57%",
+                      height: "5vh",
+                      borderRadius: "20px",
+                      textTransform: "none",
+                    }}
+                  >
+                    Confirm
+                  </Button>
+                </Box>
+              )}
+
+              {/* Part 2 */}
+              <Box
                 sx={{
-                  color: "white",
-                  backgroundColor: "#013C38",
-                  width: "25%",
-                  borderRadius: "20px",
-                  textTransform: "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "45vw",
+                  height: "100%",
                 }}
               >
-                Confirm
-              </Button>
+                <Typography
+                  sx={{
+                    color: "white",
+                    fontSize: "2rem",
+                    fontWeight: "bold",
+                    fontFamily: "Inter",
+                    zIndex: 1,
+                    marginBottom: "3.5vh",
+                  }}
+                >
+                  Create an Account
+                </Typography>
+                <input
+                  type="text"
+                  name="username"
+                  onChange={handleInputRegister}
+                  value={signUpFields.username}
+                  placeholder="Username"
+                  style={{
+                    width: "55%",
+                    height: "1.5rem",
+                    marginBottom: "3.5vh",
+                    borderRadius: "20px",
+                    border: "none",
+                    outline: "#013C38 solid 1px",
+                    padding: "0.5rem",
+                    paddingLeft: "1rem",
+                    fontSize: "1rem",
+                    fontFamily: "Inter",
+                    backgroundColor: "white",
+                  }}
+                />
+
+                <input
+                  type="password"
+                  name="password"
+                  onChange={handleInputRegister}
+                  value={signUpFields.password}
+                  placeholder="Password"
+                  style={{
+                    width: "55%",
+                    height: "1.5rem",
+                    marginBottom: "3.5vh",
+                    borderRadius: "20px",
+                    border: "none",
+                    outline: "#013C38 solid 1px",
+                    padding: "0.5rem",
+                    paddingLeft: "1rem",
+                    fontSize: "1rem",
+                    fontFamily: "Inter",
+                    backgroundColor: "white",
+                  }}
+                />
+                <input
+                  type="password"
+                  name="confirmpassword"
+                  onChange={handleInputRegister}
+                  value={signUpFields.confirmpassword}
+                  placeholder="Confirm Password"
+                  style={{
+                    width: "55%",
+                    height: "1.5rem",
+                    marginBottom: "3.5vh",
+                    borderRadius: "20px",
+                    border: "none",
+                    outline: "#013C38 solid 1px",
+                    padding: "0.5rem",
+                    paddingLeft: "1rem",
+                    fontSize: "1rem",
+                    fontFamily: "Inter",
+                    backgroundColor: "white",
+                  }}
+                />
+                <Button
+                  onClick={handleRegister}
+                  sx={{
+                    color: "white",
+                    backgroundColor: "#013C38",
+                    width: "57%",
+                    height: "5vh",
+                    borderRadius: "20px",
+                    textTransform: "none",
+                  }}
+                >
+                  Confirm
+                </Button>
+              </Box>
             </Box>
           </Box>
           <Box>

@@ -5,12 +5,13 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useCitizen } from "../library/citizen";
 
-const GoogleLoginButton = ({setIsRegistered, setSignUpFields, signUpFields}) => {
+const GoogleLoginButton = ({setIsRegistered, setSignUpFields, signUpFields, setGoogleProfileImage}) => {
 
   const navigate = useNavigate();
   const { getCitizen } = useCitizen();
   return (
     <Button
+      onClick={() => setIsRegistered(true)}
       sx={{
         color: "white",
         backgroundColor: "#013C38",
@@ -60,6 +61,7 @@ const GoogleLoginButton = ({setIsRegistered, setSignUpFields, signUpFields}) => 
               navigate("/dashboard");
             }else{
               setIsRegistered(false);
+              setGoogleProfileImage(decode.picture);
               setSignUpFields({
                 ...signUpFields,
                 email: decode.email,
