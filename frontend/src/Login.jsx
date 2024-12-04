@@ -29,6 +29,22 @@ const Login = () => {
     confirmpassword: "",
   });
 
+  const generatePassword = () => {
+    let charset = "";
+    let newPassword = "";
+
+    charset += "!@#$%^&*()";
+    charset += "0123456789";
+    charset += "abcdefghijklmnopqrstuvwxyz";
+    charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    for (let i = 0; i < 15; i++) {
+        newPassword += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+
+    return newPassword;
+};
+
   const navigate = useNavigate();
   const { getCitizens, citizens, createCitizen } = useCitizen();
 
@@ -90,6 +106,19 @@ const Login = () => {
       }
     }
   };
+
+  const handleGoogleRegister = async () => {
+    if (signUpFields.username.trim().toLowerCase() === "") {
+      alert("Please Enter a username!");
+      return;
+    }
+    const newPassword = generatePassword();
+    const newCitizen = await createCitizen({ ...signUpFields, password: newPassword });
+    console.log(newCitizen);
+    navigate("/dashboard");
+  };
+
+
 
   const handleRegister = async () => {
     if (
@@ -176,7 +205,9 @@ const Login = () => {
                   confirmpassword: "",
                 }));
                 if (current === "register") {
-                  setAnimation("translateToLeft 750ms ease-in-out");
+                  animation === "translateFurtherRight 750ms ease-in-out" ?
+                  setAnimation("translateFurtherLeft 750ms ease-in-out"):
+                  setAnimation("translateToLeft 750ms ease-in-out") 
                   setSignInButtonAnimation("signInMoveLeft 750ms ease-in-out");
                   setRegisterButtonAnimation(
                     "registerMoveLeft 750ms ease-in-out"
@@ -351,6 +382,7 @@ const Login = () => {
                     transform: "translateY(0%)",
                   },
                 },
+                
               }}
             />
           </Button>
@@ -424,6 +456,30 @@ const Login = () => {
                   transform: "translate(-33%,0)",
                 },
               },
+            "@keyframes translateFurtherRight": {
+              "0%": {
+                transform: "translateX(-33%)",
+              },
+              "100%": {
+                transform: "translateX(-66%)",
+              },
+            },
+            "@keyframes translateBackRight": {
+              "0%": {
+                transform: "translateX(-66%)",
+              },
+              "100%": {
+                transform: "translateX(-33%)",
+              },
+            },
+            "@keyframes translateFurtherLeft": {
+              "0%": {
+                transform: "translateX(-66%)",
+              },
+              "100%": {
+                transform: "translateX(0%)",
+              },
+            },
             }}
           >
             {/* Sign In */}
@@ -767,7 +823,9 @@ const Login = () => {
                     </Button>
                   </Box>
                   <Button
-                    onClick={handleRegister}
+                    onClick={() => {
+                      setAnimation("translateFurtherRight 750ms ease-in-out");
+                    }}
                     sx={{
                       color: "white",
                       backgroundColor: "#013C38",
@@ -872,49 +930,8 @@ const Login = () => {
                       backgroundColor: "white",
                     }}
                   />
-
-                  {/* <input
-                    type="password"
-                    name="password"
-                    onChange={handleInputRegister}
-                    value={signUpFields.password}
-                    placeholder="Password"
-                    style={{
-                      width: "55%",
-                      height: "1.5rem",
-                      marginBottom: "3.5vh",
-                      borderRadius: "20px",
-                      border: "none",
-                      outline: "#013C38 solid 1px",
-                      padding: "0.5rem",
-                      paddingLeft: "1rem",
-                      fontSize: "1rem",
-                      fontFamily: "Inter",
-                      backgroundColor: "white",
-                    }}
-                  />
-                  <input
-                    type="password"
-                    name="confirmpassword"
-                    onChange={handleInputRegister}
-                    value={signUpFields.confirmpassword}
-                    placeholder="Confirm Password"
-                    style={{
-                      width: "55%",
-                      height: "1.5rem",
-                      marginBottom: "3.5vh",
-                      borderRadius: "20px",
-                      border: "none",
-                      outline: "#013C38 solid 1px",
-                      padding: "0.5rem",
-                      paddingLeft: "1rem",
-                      fontSize: "1rem",
-                      fontFamily: "Inter",
-                      backgroundColor: "white",
-                    }}
-                  /> */}
                   <Button
-                    onClick={handleRegister}
+                    onClick={handleGoogleRegister}
                     sx={{
                       color: "white",
                       backgroundColor: "#013C38",
