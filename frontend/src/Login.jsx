@@ -54,6 +54,8 @@ const Login = () => {
   useEffect(() => {
     if (citizens) {
       console.log(citizens);
+    console.log(import.meta.env.CLIENT_ID);
+
     }
   }, [citizens]);
 
