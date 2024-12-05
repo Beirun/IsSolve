@@ -6,7 +6,7 @@ const Dashboard = () => {
   return (
     <Box>
       <Navbar />
-      <Typography>hello</Typography>
+      <Typography>dash</Typography>
     </Box>
   )
 }
