@@ -58,12 +58,29 @@ export const useCitizen = create((set) => ({
             console.error(error);
         }
     },
-    getCitizen: async (email) => {
+    getCitizenEmail: async (email) => {
         try {
-            const response = await fetch(`http://localhost:3000/citizen/${email}`);
+            if (!email) {
+                return null;
+            }
+            const response = await fetch(`http://localhost:3000/citizen/email/${email}`);
             const data = await response.json();
             return data;
         } catch (error) {
+            console.error(error);
+        }
+    },
+    getCitizenUsername: async (username) => {
+        try {
+            if (!username) {
+                return null;
+            }
+            console.log('username',username)
+            const response = await fetch(`http://localhost:3000/citizen/username/${username}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.log(error);
             console.error(error);
         }
     },

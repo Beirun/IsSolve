@@ -4,72 +4,87 @@ import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { useCitizen } from "../library/citizen";
+import { useCurrent } from "../library/current";
+import { useSnackbar } from "notistack";
 
-const GoogleLoginButton = ({setIsRegistered, setSignUpFields, signUpFields, setGoogleProfileImage}) => {
+const GoogleLoginButton = ({
+  setIsRegistered,
+  setSignUpFields,
+  signUpFields,
+  setGoogleProfileImage,
+}) => {
+
+  const { enqueueSnackbar } = useSnackbar();
+  const displaySnackbar = (message, variant) => {
+    enqueueSnackbar(message, {
+      variant: variant,
+      anchorOrigin: {
+        vertical: "bottom",
+        horizontal: "right",
+      },
+    });
+  };
 
   const navigate = useNavigate();
-  const { getCitizen } = useCitizen();
+  const { setSignedInAccount } = useCurrent();
+  const { getCitizenEmail } = useCitizen();
+  
+
   return (
     <Button
-      onClick={() => setIsRegistered(true)}
-      sx={{
-        color: "white",
-        backgroundColor: "#013C38",
-        width: "50%",
-        marginRight: "1rem",
-        borderRadius: "20px",
-        textTransform: "none",
-        height: "2.5rem",
+      onClick={(e) => {
+        setIsRegistered(true);
       }}
+      variant="outlined"
+      size="large"
+      color="info"
+      sx={{ width: "25vw" }}
     >
-      <Box
-        sx={{
-          width: "100%",
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <img src="../src/resources/google.png" alt="google" width={"20px"} />
-        <Typography
-          sx={{
-            fontSize: "1rem",
-            marginLeft: ".5rem",
-            fontFamily: "Inter",
-            fontWeight: "bold",
-            color: "#E9F5DB",
-          }}
-        >
-          oogle Account
-        </Typography>
-      </Box>
+      <img src="../src/resources/google.png" alt="google" width={"20px"} />
+      &nbsp;&nbsp;Sign in with google
       <Box
         sx={{
           opacity: "0",
           overflow: "hidden",
           position: "absolute",
+          display: "flex",
         }}
       >
         <GoogleLogin
           buttonText="Login"
           theme="outline"
-          onSuccess={async(credentialResponse) => {
+          width="400"
+          onSuccess={async (credentialResponse) => {
             const decode = jwtDecode(credentialResponse.credential);
-            const citizen = await getCitizen(decode.email);
-            if(citizen){
+            const citizen = await getCitizenEmail(decode.email);
+            if (citizen) {
+              displaySnackbar("Logged in successfully.", "success");
+              setSignedInAccount(citizen);
               navigate("/dashboard");
-            }else{
+            } else {
               setIsRegistered(false);
               setGoogleProfileImage(decode.picture);
+              console.log(typeof decode.picture);
+              const base64 = await fetch(decode.picture)
+                .then((response) => response.blob())
+                .then((blob) => {
+                  const reader = new FileReader();
+                  reader.readAsDataURL(blob);
+                  return new Promise((res) => {
+                    reader.onloadend = () => {
+                      res(reader.result);
+                    };
+                  });
+                });
+
               setSignUpFields({
                 ...signUpFields,
                 email: decode.email,
                 firstname: decode.given_name,
-                lastname: decode.family_name
-              })
+                lastname: decode.family_name,
+                img: base64,
+              });
             }
-            console.log(decode);
           }}
           onError={() => {
             console.log("Login Failed");
