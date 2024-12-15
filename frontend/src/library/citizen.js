@@ -30,7 +30,7 @@ export const useCitizen = create((set) => ({
     },
     updateCitizen: async (citizen) => {
         try {
-            const response = await fetch(`http://localhost:3000/citizen/${citizen.id}`, {
+            const response = await fetch(`http://localhost:3000/citizen/${citizen.ctzn_id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -75,8 +75,7 @@ export const useCitizen = create((set) => ({
             if (!username) {
                 return null;
             }
-            console.log('username',username)
-            const response = await fetch(`http://localhost:3000/citizen/username/${username}`);
+            const response = await fetch(`http://localhost:3000/citizen/username/${username.toLowerCase()}`);
             const data = await response.json();
             return data;
         } catch (error) {

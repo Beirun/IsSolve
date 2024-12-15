@@ -104,7 +104,7 @@ const Report = ({ report, reports, index }) => {
                   fontFamily: "Roboto",
                 }}
               >
-                {report.location.slice(1, 4).reverse().join(' - ')}
+                {report.location}
                 {/* {address.city + ' - ' + (address.quarter ? address.quarter : address.neighbourhood) + ' - ' + address.road} */}
               </Typography>
             )}

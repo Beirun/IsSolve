@@ -177,6 +177,7 @@ const Login = () => {
     const citizen = await getCitizenUsername(
       signUpFields.username.trim().toLowerCase()
     );
+    console.log(citizen)
     if (citizen) {
       setErrorUsernameText.username = "Username already exists";
       setErrorSignUpText(setErrorUsernameText);
@@ -185,7 +186,7 @@ const Login = () => {
     const newPassword = generatePassword();
     const newCitizen = await createCitizen({
       ...signUpFields,
-      password: newPassword,
+      username: signUpFields.username.trim().toLowerCase(),
     });
     console.log(newCitizen);
     setSignedInAccount(newCitizen);
@@ -195,7 +196,7 @@ const Login = () => {
 
   const handleContinueRegister = async () => {
     const firstErrorSignUpText = { ...errorSignUpText };
-    const citizen = await getCitizenEmail(signUpFields.email);
+    const citizen = await getCitizenEmail(signUpFields.email.toLowerCase());
     if (citizen) {
       firstErrorSignUpText.email = "Email already exists";
       setErrorSignUpText(firstErrorSignUpText);
@@ -255,7 +256,9 @@ const Login = () => {
       setErrorSignUpText(secondErrorSignUpText);
       return;
     }
-    const newCitizen = await createCitizen(signUpFields);
+    const preCitizen = {
+      ...signUpFields, username: signUpFields.username.trim().toLowerCase(),}
+    const newCitizen = await createCitizen(preCitizen);
     console.log(newCitizen);
     setSignedInAccount(newCitizen);
     displaySnackbar("Registered successfully.", "success");
@@ -856,6 +859,7 @@ const Login = () => {
                       marginBottom: "8.5vh",
                       borderRadius: "25px",
                       border: "1px solid #515151",
+                      overflow: "hidden",
                     }}
                   >
                     <img

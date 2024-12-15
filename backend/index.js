@@ -2,6 +2,7 @@ import citizenRoute from "./routes/citizen.route.js";
 import reportRoute from "./routes/report.route.js";
 import commentRoute from "./routes/comment.route.js";
 import reactRoute from "./routes/react.route.js";
+import notificationRoute from "./routes/notification.route.js";
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -18,6 +19,8 @@ app.use("/citizen", citizenRoute);
 app.use("/report", reportRoute);
 app.use("/comment", commentRoute);
 app.use("/react", reactRoute);
+app.use("/notification", notificationRoute);
+
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

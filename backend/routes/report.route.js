@@ -5,10 +5,10 @@ const app = express.Router();
 
 app.post("/", async (req, res) => {
     try {
-        const { ctzn_id, issueType, description, lat, lng, proofImage, status, date } = req.body;
+        const { ctzn_id, issueType, description, lat, lng, proofImage, status, date, location } = req.body;
         const newReport = await pool.query(
-            "INSERT INTO report (ctzn_id, issue_type, description, latitude, longitude, img_proof, status, rprt_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;",
-             [ctzn_id, issueType, description, lat, lng, proofImage, status , date]
+            "INSERT INTO report (ctzn_id, issue_type, description, latitude, longitude, img_proof, status, rprt_date, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *;",
+             [ctzn_id, issueType, description, lat, lng, proofImage, status , date, location]
             );
         res.json(newReport.rows[0]);
     } catch (error) {

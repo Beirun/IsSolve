@@ -1,7 +1,13 @@
 import { MapContainer, TileLayer, useMapEvents, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Icon } from "leaflet";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import {
   Box,
   Typography,
@@ -14,7 +20,7 @@ import {
   Backdrop,
   Fade,
 } from "@mui/material";
-
+import { useNotification } from "./library/notification";
 import { useReport } from "./library/report";
 import { useCurrent } from "./library/current";
 import { useComment } from "./library/comment";
@@ -46,6 +52,7 @@ const ViewReport = () => {
   const commentRef = useRef(null);
   const [openLocation, setOpenLocation] = useState(false);
   const navigate = useNavigate();
+  const { addNotification, addNotificationCommentReact, getNotificationTime, getNotificationCommentReactTime } = useNotification();
   const {
     createCommentReact,
     deleteCommentReact,
@@ -56,11 +63,12 @@ const ViewReport = () => {
     iconUrl: "../src/resources/location.png",
     iconSize: [45, 90],
   });
+  const timeoutId = useRef(null);
+  const timeoutId2 = useRef(null);
 
   const { signedInAccount } = useCurrent();
   const [report, setReport] = useState([]);
   const [comments, setComments] = useState([]);
-  const [reportLocation, setReportLocation] = useState("");
   const [comment, setComment] = useState({
     comment_message: "",
     rprt_id: id,
@@ -85,14 +93,12 @@ const ViewReport = () => {
   useEffect(() => {
     async function fetchData() {
       const data = await getViewReport(id, signedInAccount.ctzn_id);
-      const reportLocation = await getReportLocation(data);
       const comments = await getReportComments(id, signedInAccount.ctzn_id);
       setComments(comments);
       setReport(data);
-      setReportLocation(reportLocation);
     }
     fetchData();
-  }, []);
+  }, [id]);
 
   const handleOpenLocation = () => {
     setOpenLocation(true);
@@ -102,8 +108,71 @@ const ViewReport = () => {
     setOpenLocation(false);
   };
 
+  const handleAddCommentNotification = async () => {
+    if (signedInAccount.ctzn_id === report.ctzn_id) return;
+    const data = await addNotification({
+      notification_sender: signedInAccount.ctzn_id,
+      notification_message: `${signedInAccount.ctzn_firstname} ${signedInAccount.ctzn_lastname} commented on your report.`,
+      notification_date: formatDate(new Date()),
+      notification_status: "unread",
+      rprt_id: report.rprt_id,
+      ctzn_id: report.ctzn_id,
+    });
+  };
+
+  const handleAddCommentReactNotification = async (comment) => {
+    if (signedInAccount.ctzn_id === comment.ctzn_id) return;
+    const notification = {
+      notification_sender: signedInAccount.ctzn_id,
+      notification_message: `${signedInAccount.ctzn_firstname} ${signedInAccount.ctzn_lastname} reacted to your comment.`,
+      notification_date: formatDate(new Date()),
+      notification_status: "unread",
+      rprt_id: comment.rprt_id,
+      comment_id: comment.comment_id,
+      ctzn_id: comment.ctzn_id,
+    };
+    const time = await getNotificationCommentReactTime(notification);
+    console.log(dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60)
+    if (dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60) {
+        return;
+      }
+    const data = await addNotificationCommentReact(notification);
+  };
+
+  const handleAddReportReactNotification = async () => {
+    if (signedInAccount.ctzn_id === report.ctzn_id) return;
+    const notification = {
+      notification_sender: signedInAccount.ctzn_id,
+      notification_message: `${signedInAccount.ctzn_firstname} ${signedInAccount.ctzn_lastname} reacted to your report.`,
+      notification_date: formatDate(new Date()),
+      notification_status: "unread",
+      rprt_id: report.rprt_id,
+      ctzn_id: report.ctzn_id,
+    };
+    const time = await getNotificationTime(notification);
+    
+    if (dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60) {
+      return;
+    }
+    const data = await addNotification(notification);
+  };
+  const formatDate = (date) => {
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+  }
+  const dateDifferenceInSeconds = (dateInitial, dateFinal) =>
+    (dateFinal - dateInitial) / 1_000;
+
   const handleAddComment = async () => {
     const newComment = { ...comment };
+    if(newComment.comment_message.trim() === "") return;
     const data = await createComment(newComment);
     console.log("data", data);
     setComments([{ ...newComment, comment_id: data.comment_id }, ...comments]);
@@ -114,15 +183,7 @@ const ViewReport = () => {
       ctzn_firstname: signedInAccount.ctzn_firstname,
       ctzn_lastname: signedInAccount.ctzn_lastname,
       ctzn_profileimage: signedInAccount.ctzn_profileimage,
-      comment_date: new Date().toLocaleString("en-US", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }),
+      comment_date: formatDate(new Date()),
       total_reacts: 0,
       reactor_id: null,
     });
@@ -130,6 +191,7 @@ const ViewReport = () => {
       ...report,
       total_comments: parseInt(report.total_comments) + 1,
     }));
+    await handleAddCommentNotification();
   };
 
   const handleKeyDown = (event) => {
@@ -140,6 +202,7 @@ const ViewReport = () => {
   };
   const handleReportLike = async () => {
     await createReportReact({ rprt_id: id, ctzn_id: signedInAccount.ctzn_id });
+    handleAddReportReactNotification();
   };
 
   const handleReportDislike = async () => {
@@ -151,6 +214,7 @@ const ViewReport = () => {
       comment_id: comment.comment_id,
       ctzn_id: signedInAccount.ctzn_id,
     });
+    await handleAddCommentReactNotification(comment);
   };
 
   const handleDislike = async (comment) => {
@@ -175,7 +239,7 @@ const ViewReport = () => {
       }}
     >
       <Navbar />
-      {report && comments && reportLocation ? (
+      {report && report.ctzn_id && comments ? (
         <Box
           sx={{
             display: "flex",
@@ -269,40 +333,39 @@ const ViewReport = () => {
                 </Box>
               )}
             </Box>
-            {reportLocation && (
-              <Box
+
+            <Box
+              sx={{
+                height: "4.898vh",
+                width: "52.148vw",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                marginTop: "1vh",
+              }}
+            >
+              <Typography
                 sx={{
-                  height: "4.898vh",
-                  width: "52.148vw",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "flex-start",
-                  marginTop: "1vh",
+                  fontSize: "3.1vh",
+                  fontWeight: "600",
+                  fontFamily: "Inter",
+                  marginRight: "2.5vw",
                 }}
               >
-                <Typography
-                  sx={{
-                    fontSize: "3.1vh",
-                    fontWeight: "600",
-                    fontFamily: "Inter",
-                    marginRight: "2.5vw",
-                  }}
-                >
-                  {reportLocation.slice(1, 4).reverse().join(" - ")}
-                </Typography>
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="info"
-                  sx={{
-                    height: "4.898vh",
-                  }}
-                  onClick={handleOpenLocation}
-                >
-                  VIEW LOCATION
-                </Button>
-              </Box>
-            )}
+                {report.location}
+              </Typography>
+              <Button
+                size="small"
+                variant="contained"
+                color="info"
+                sx={{
+                  height: "4.898vh",
+                }}
+                onClick={handleOpenLocation}
+              >
+                VIEW LOCATION
+              </Button>
+            </Box>
           </Box>
           <Box
             sx={{
@@ -319,10 +382,14 @@ const ViewReport = () => {
                 marginTop: "4vh",
               }}
             >
-              <Avatar
-                src={report.ctzn_profileimage}
-                sx={{ width: "4.2vw", height: "4.2vw" }}
-              />
+              {signedInAccount.ctzn_profileimage ? (
+                <Avatar
+                  src={report.ctzn_profileimage}
+                  sx={{ width: "4.2vw", height: "4.2vw" }}
+                />
+              ) : (
+                <Avatar sx={{ width: "4.2vw", height: "4.2vw" }} />
+              )}
               <Box>
                 <Typography
                   sx={{
@@ -342,7 +409,7 @@ const ViewReport = () => {
                     marginLeft: "1vw",
                   }}
                 >
-                  {moment(report.rprt_date).fromNow()}
+                  {moment(new Date(report.rprt_date)).fromNow()}
                 </Typography>
               </Box>
             </Box>
@@ -472,10 +539,14 @@ const ViewReport = () => {
                         }}
                       >
                         <Box sx={{ display: "flex", alignItems: "center" }}>
-                          <Avatar
-                            src={comment.ctzn_profileimage}
-                            sx={{ width: "3vw", height: "3vw" }}
-                          />
+                          {comment.ctzn_profileimage ? (
+                            <Avatar
+                              src={comment.ctzn_profileimage}
+                              sx={{ width: "3vw", height: "3vw" }}
+                            />
+                          ) : (
+                            <Avatar sx={{ width: "3vw", height: "3vw" }} />
+                          )}
                           <Box
                             sx={{
                               display: "flex",
@@ -489,7 +560,7 @@ const ViewReport = () => {
                                 comment.ctzn_lastname}
                             </Typography>
                             <Typography fontSize="1.685vh">
-                              {moment(comment.comment_date).fromNow()}
+                              {moment(new Date(comment.comment_date)).fromNow()}
                             </Typography>
                           </Box>
                         </Box>
@@ -652,10 +723,10 @@ const ViewReport = () => {
                 }}
               >
                 <IconButton
-                    onClick={handleCloseLocation}
-                    sx={{ position: "absolute", top: "0", right: "0" }}
+                  onClick={handleCloseLocation}
+                  sx={{ position: "absolute", top: "0", right: "0" }}
                 >
-                    <IconX/>
+                  <IconX />
                 </IconButton>
                 <MapContainer
                   center={[report.latitude, report.longitude]}
@@ -663,12 +734,11 @@ const ViewReport = () => {
                   style={{ height: "70vh" }}
                 >
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  
-                    <Marker
-                      position={[report.latitude, report.longitude]}
-                      icon={markerIcon}
-                    ></Marker>
-                  
+
+                  <Marker
+                    position={[report.latitude, report.longitude]}
+                    icon={markerIcon}
+                  ></Marker>
                 </MapContainer>
               </Box>
             </Fade>

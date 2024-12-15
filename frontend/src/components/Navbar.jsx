@@ -7,61 +7,95 @@ import {
   TextField,
   Menu,
   MenuItem,
-  InputAdornment
+  InputAdornment,
+  Typography,
+  Badge
 } from "@mui/material";
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {IconBell, IconSearch} from "@tabler/icons-react"
 import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
 import { useCitizen } from "../library/citizen";
+import { useNotification } from "../library/notification";
 import { useCurrent } from "../library/current";
 
-function stringToColor(string) {
-  let hash = 0;
-  let i;
-
-  /* eslint-disable no-bitwise */
-  for (i = 0; i < string.length; i += 1) {
-    hash = string.charCodeAt(i) + ((hash << 5) - hash);
-  }
-
-  let color = "#";
-
-  for (i = 0; i < 3; i += 1) {
-    const value = (hash >> (i * 8)) & 0xff;
-    color += `00${value.toString(16)}`.slice(-2);
-  }
-  /* eslint-enable no-bitwise */
-
-  return color;
-}
-
-function stringAvatar(name) {
-  return {
-    sx: {
-      bgcolor: stringToColor(name),
-      width: "5vh",
-      height: "5vh",
-      fontSize: "2vh",
-      fontWeight: "500",
-      fontFamily: "Inter",
-    },
-    children: `${name.split(" ")[0][0]}${name.split(" ")[1][0]}`,
-  };
-}
-
 const Navbar = () => {
+  const displaySnackbar = (message, variant) => {
+    enqueueSnackbar(message, {
+      variant: variant,
+      anchorOrigin: {
+        vertical: "bottom",
+        horizontal: "right",
+      },
+    });
+  };
+  const {getCitizenNotifications, updateNotification, updateNotificationCommentReact} = useNotification();
+  const [citizenNotifications, setCitizenNotifications] = useState([]);
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
   const { signedInAccount, setSignedInAccount } = useCurrent();
+  const [notificationCount, setNotificationCount] = useState(0);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
+
+
+  useEffect(() => {
+    async function fetchData() {
+      const notifications = await getCitizenNotifications(signedInAccount.ctzn_id);
+      setCitizenNotifications(notifications);
+      setNotificationCount(notifications.filter((notification) => notification.notification_status === "unread").length);
+    }
+
+    fetchData();
+  }, []);
+
+
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  const [notificationAnchorEl, setNotificationAnchorEl] = React.useState(null);
+  const notificationOpen = Boolean(notificationAnchorEl);
+  const handleNotificationClick = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
+  };
+  const handleNotificationClose = async() => {
+    setNotificationCount(0);
+    setNotificationAnchorEl(null);
+    for (let i = 0; i < citizenNotifications.length; i++) {
+      if(citizenNotifications[i].notification_status === "unread") {
+        if(citizenNotifications[i].notification_message.includes("reacted to your comment.")){ 
+          await updateNotificationCommentReact(citizenNotifications[i].notification_id,{notification_status: "read"});
+        }
+        else{
+          await updateNotification(citizenNotifications[i].notification_id,{notification_status: "read"});
+        }
+      }
+    }  
+  };
+
+  console.log("citizenNotifications", citizenNotifications);
+
+  const [search, setSearch] = useState("");
+  const searchInputRef = useRef(null);
+
+  const handleSearchChange = (event) => {
+    setSearch(event.target.value);
+  };
+
+  const handleSearchKeyDown = (event) => {
+    if (event.key === "Enter") {
+      
+      event.preventDefault();
+      navigate(`/search/${search}`);
+      setSearch("");
+      searchInputRef.current.blur();
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -130,6 +164,10 @@ const Navbar = () => {
         <TextField
           variant="outlined"
           placeholder="Search"
+          onKeyDown={handleSearchKeyDown}
+          onChange={handleSearchChange}
+          value={search}
+          ref={searchInputRef}
           size="medium"
           slotProps={{
             input: {
@@ -145,13 +183,68 @@ const Navbar = () => {
             marginRight: "1vw",
           }}
         />
+
+
+        {/* Notification Icon */}
         <IconButton
+          onClick={handleNotificationClick}
           sx={{
             marginRight: "2vw",
           }}
         >
-          <IconBell size={40} stroke={1.5}/>
+          {citizenNotifications.length === 0 ? (
+            <IconBell size={40} stroke={1.5}/>
+          ):(
+            <Badge badgeContent={notificationCount} color="error"><IconBell size={40} stroke={1.5}/></Badge>
+          )}
         </IconButton>
+        <Menu
+          id="basic-menu"
+          anchorEl={notificationAnchorEl}
+          open={notificationOpen}
+          onClose={handleNotificationClose}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'center',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'center',
+          }}
+          MenuListProps={{
+            "aria-labelledby": "basic-button",
+          }}
+          sx={{
+            "& .MuiMenu-paper": {
+              maxHeight: "50vh",
+            },
+          }}
+        >
+          {citizenNotifications.length === 0 ? (
+            <MenuItem
+              key="no-notifications"
+              disabled
+            >
+              <Typography variant="h5" sx={{height:"20vh", width: "15vw", textAlign: "center",display:'flex', alignItems:"center", justifyContent:"center",}} >No Notifications</Typography>
+            </MenuItem>
+          ):(
+            citizenNotifications.map((notification) => (
+              <MenuItem key={notification.notification_id}
+                sx={{ width: "25vw", backgroundColor: notification.notification_status === "unread" ? "#3a3a3a" : "#2e2e2e" }}
+              onClick={() => {
+                handleNotificationClose();
+                navigate(`/report/${notification.rprt_id}`)
+                }}>
+                <Avatar src={notification.ctzn_profileimage} /> <Typography variant="caption" color="inherit" sx={{ marginLeft: "1vw" }}>{notification.notification_message}</Typography>
+              </MenuItem>
+            ))
+          )}
+        </Menu>
+
+
+
+
+        {/* Profile Icon */}
         <IconButton
           id="basic-button"
           aria-controls={open ? "basic-menu" : undefined}
@@ -163,7 +256,7 @@ const Navbar = () => {
             <Avatar src={signedInAccount.ctzn_profileimage}/>
           ) :
           (
-            <Avatar {...stringAvatar("John Doe")} />
+            <Avatar />
           )}
         </IconButton>
         <Menu
@@ -175,9 +268,27 @@ const Navbar = () => {
             "aria-labelledby": "basic-button",
           }}
         >
-          <MenuItem onClick={handleClose}>Profile</MenuItem>
-          <MenuItem onClick={handleClose}>My account</MenuItem>
-          <MenuItem onClick={handleClose}>Logout</MenuItem>
+          <MenuItem onClick={() => {
+            handleClose();
+            navigate(`/profile`)
+            }}>
+          {signedInAccount.ctzn_profileimage ? (
+            <Avatar src={signedInAccount.ctzn_profileimage}/>
+          ) :
+          (
+            <Avatar {...stringAvatar(signedInAccount.ctzn_firstname+" "+signedInAccount.ctzn_lastname)} />
+          )}
+            <Typography sx={{ marginLeft: "1vw" }} fontFamily="Inter" variant="body2">{signedInAccount.ctzn_firstname} {signedInAccount.ctzn_lastname}</Typography>
+          </MenuItem>
+          <MenuItem onClick={
+            () => {
+              handleClose();
+              setSignedInAccount(null);
+              displaySnackbar("Logged out successfully!", "success");
+              navigate("/login");
+
+            }
+          }>Logout</MenuItem>
         </Menu>
       </Box>
     </Box>

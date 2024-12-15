@@ -15,7 +15,7 @@ import "@fontsource/roboto/700.css";
 
 const MyReports = () => {
   const navigate = useNavigate();
-
+  const [noReports, setNoReports] = useState(-1);
   const [reports, setReports] = useState([]);
   const [selectedIssueType, setSelectedIssueType] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
@@ -28,6 +28,7 @@ const MyReports = () => {
     async function fetchData() {
       const userReports = await getUserReports(signedInAccount.ctzn_id);
       setReports(userReports);
+      setNoReports(userReports.length);
     }
     fetchData();
   }, []);
@@ -60,7 +61,7 @@ const MyReports = () => {
       }}
     >
       <Navbar />
-      {reports && reports.length > 0 ? (
+      {reports && reports.length > 0 || noReports===0 ? (
         <Box
           sx={{
             display: "flex",

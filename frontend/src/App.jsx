@@ -16,7 +16,7 @@ function App() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<ProfileSettings />} />
       <Route path="/myreports" element={<MyReports />} />
-      <Route path="/search" element={<SearchReports />} />
+      <Route path="/search/:id" element={<SearchReports />} />
       <Route path='/submit' element={<SubmitReport/>} />  
       <Route path='/report/:id' element={<ViewReport/>} />
 
