@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import Navbar from "./components/Navbar";
 import "@fontsource/inter";
@@ -8,8 +8,27 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/400.css";
 import { IconFlameFilled } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
+import { useReport } from "./library/report";
+import LoadingPage from "./components/LoadingPage";
 const Dashboard = () => {
+  const [recentReports, setRecentReports] = useState([]);
+  const [trendingReport, setTrendingReport] = useState({});
+  const { getTrendingReport, getRecentReports } = useReport();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchTrendingReport = async () => {
+      const response = await getTrendingReport();
+      setTrendingReport(response);
+    };
+    const fetchRecentReports = async () => {
+      const response = await getRecentReports();
+      setRecentReports(response);
+    };
+    fetchTrendingReport();
+    fetchRecentReports();
+  }, []);
+
   return (
     <Box
       sx={{
@@ -21,8 +40,9 @@ const Dashboard = () => {
         paddingTop: "10vh",
       }}
     >
-      <Navbar />
-      <Box
+      <Navbar isDashboard={true} />
+      { recentReports.length > 0 && trendingReport ? (
+        <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
@@ -128,7 +148,7 @@ const Dashboard = () => {
             {/* CONTENT */}
             <Box
               sx={{
-                backgroundImage: "url(../src/resources/loginBG.png)",
+                backgroundImage: `url(${trendingReport.img_proof})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 width: "100%",
@@ -152,19 +172,24 @@ const Dashboard = () => {
                   alignItems: "center",
                   gap: "0.75rem",
                   height: "50%",
+                  width: "100%",
                 }}
               >
                 <Typography
                   sx={{
                     color: "white",
-                    fontSize: "1.45rem",
+                    fontSize: "1.2rem",
                     fontWeight: "600",
                     fontFamily: "Inter",
+                    maxWidth: "85%",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    textWrap: "nowrap",
                   }}
                 >
-                  Pothole in Sanciangko Street, Cebu City
+                  {trendingReport.issue_type} IN {trendingReport.location}
                 </Typography>
-                <Button size="small" variant="outlined" color="info">
+                <Button size="small" variant="outlined" color="info" onClick={() => navigate(`/report/${trendingReport.rprt_id}`)}>
                   See more
                 </Button>
               </Box>
@@ -224,10 +249,10 @@ const Dashboard = () => {
                   overflow: "hidden",
                 }}
               >
-                {[1, 2, 3].map((i) => (
+                {recentReports.map((report, index) => (
                   <Box>
                     <Box
-                      key={i}
+                      key={report.rprt_id}
                       sx={{
                         display: "flex",
                         justifyContent: "flex-start",
@@ -236,16 +261,19 @@ const Dashboard = () => {
                         gap: "2vw",
                         // width: "6.7vw",
                         width: "100%",
+                        overflow: "hidden",
                       }}
                     >
                       <Box
                         sx={{
                           width: "6.7vw",
                           height: "100%",
-                          backgroundImage: "url(../src/resources/loginBg.png)",
+                          backgroundImage: `url(${report.img_proof})`,
                           backgroundSize: "cover",
                           backgroundPosition: "center",
+                          cursor: "pointer",
                         }}
+                        onClick={() => navigate(`/report/${report.rprt_id}`)}
                       />
                       <Box
                         sx={{
@@ -263,9 +291,11 @@ const Dashboard = () => {
                             fontSize: "1rem",
                             fontWeight: "600",
                             fontFamily: "Inter",
+                            cursor: "pointer",
                           }}
+                          onClick={() => navigate(`/report/${report.rprt_id}`)}
                         >
-                          Broken Street Light in Colon St.
+                          {report.issue_type} IN {report.location}
                         </Typography>
                         <Box
                           sx={{
@@ -286,14 +316,14 @@ const Dashboard = () => {
                               textAlign: "justify",
                             }}
                           >
-                            The flickering glow of the broken street light cast
-                            eerie shadows on the cracked pavement, a reminder of
-                            the neglected neighborhood.
+                            {report.description.length > 90
+                              ? report.description.substring(0, 90) + "..."
+                              : report.description}
                           </Typography>
                         </Box>
                       </Box>
                     </Box>
-                    {i > [1, 2, 3].length - 1 ? null : (
+                    {index === recentReports.length - 1 ? null : (
                       <Box
                         sx={{
                           width: "100%",
@@ -319,6 +349,10 @@ const Dashboard = () => {
           </Box>
         </Box>
       </Box>
+      ):(
+        <LoadingPage/>
+      )}
+      
     </Box>
   );
 };

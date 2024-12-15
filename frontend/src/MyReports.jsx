@@ -1,4 +1,4 @@
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, Typography, IconButton, Menu, MenuItem } from "@mui/material";
 import Navbar from "./components/Navbar";
 import { IconSortDescending } from "@tabler/icons-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -47,7 +47,14 @@ const MyReports = () => {
     "OTHER",
   ];
 
-  console.log("reports", reports);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
   return (
     <Box
       sx={{
@@ -220,7 +227,40 @@ const MyReports = () => {
               >
                 SORT BY
               </Typography>
-              <IconSortDescending size={"5vh"} stroke={1} />
+              <IconButton
+                id="basic-button"
+                aria-controls={open ? "basic-menu" : undefined}
+                aria-haspopup="true"
+                aria-expanded={open ? "true" : undefined}
+                onClick={handleClick}
+              >
+                <IconSortDescending size={"5vh"} stroke={1} />
+              </IconButton>
+
+              <Menu
+                id="basic-menu"
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleClose}
+                MenuListProps={{
+                  "aria-labelledby": "basic-button",
+                }}
+              >
+                <MenuItem
+                  onClick={() => {
+                    const sortedReports = [...reports].sort((a, b) => new Date(b.rprt_date) - new Date(a.rprt_date));
+                    setReports(sortedReports);
+                    handleClose();
+                  }}
+                >Newest</MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    const sortedReports = [...reports].sort((a, b) => new Date(a.rprt_date) - new Date(b.rprt_date));
+                    setReports(sortedReports);
+                    handleClose();
+                  }}
+                >Oldest</MenuItem>
+              </Menu>
             </Box>
           </Box>
           <Box
@@ -242,6 +282,9 @@ const MyReports = () => {
               return true;
             if (selectedStatus !== "" && selectedIssueType === "" && report.status === selectedStatus)
               return true;
+            if(selectedIssueType === "OTHER")
+              if(!issueTypes.includes(report.issue_type))
+                return true
             return false;
           }).length === 0 ? ( 
             <Typography
@@ -268,10 +311,28 @@ const MyReports = () => {
                 return true;
               if (selectedStatus !== "" && selectedIssueType === "" && report.status === selectedStatus)
                 return true;
+              if(selectedIssueType === "OTHER")
+                if(!issueTypes.includes(report.issue_type))
+                  return true
               return false;
             })
               .map((report, index) => (
-                <Report report={report} reports={reports} index={index} />
+                <Report report={report} reports={reports.filter((report) => {
+                  if (selectedIssueType === "" && selectedStatus === "") return true;
+                  if(selectedIssueType === report.issue_type && selectedStatus === report.status)
+                    return true
+                  if (
+                    selectedIssueType !== "" && selectedStatus === "" &&
+                    report.issue_type === selectedIssueType 
+                  )
+                    return true;
+                  if (selectedStatus !== "" && selectedIssueType === "" && report.status === selectedStatus)
+                    return true;
+                  if(selectedIssueType === "OTHER")
+                    if(!issueTypes.includes(report.issue_type))
+                      return true
+                  return false;
+                })} index={index} />
               ))
           )}
         </Box>

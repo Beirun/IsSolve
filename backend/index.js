@@ -3,6 +3,8 @@ import reportRoute from "./routes/report.route.js";
 import commentRoute from "./routes/comment.route.js";
 import reactRoute from "./routes/react.route.js";
 import notificationRoute from "./routes/notification.route.js";
+import resolveRoute from "./routes/resolve.route.js";
+import resetRoute from "./routes/reset.route.js";
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -20,6 +22,8 @@ app.use("/report", reportRoute);
 app.use("/comment", commentRoute);
 app.use("/react", reactRoute);
 app.use("/notification", notificationRoute);
+app.use("/resolve", resolveRoute);
+app.use("/reset", resetRoute);
 
 
 app.listen(port, () => {

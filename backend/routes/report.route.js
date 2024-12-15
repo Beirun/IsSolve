@@ -17,11 +17,102 @@ app.post("/", async (req, res) => {
     }
 });
 
+//get issue type counts
+app.get("/count/type", async (req, res) => {
+    try {
+        const report = await pool.query(`SELECT issue_type, COUNT(*) AS count FROM report GROUP BY issue_type;`);
+        res.json(report.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+//get issue status counts
+app.get("/count/status", async (req, res) => {
+    try {
+        const report = await pool.query(`SELECT status as label, COUNT(*) AS value FROM report GROUP BY status;`);
+        res.json(report.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+//get report count
+app.get("/count/report", async (req, res) => {
+    try {
+        const report = await pool.query(`select date_trunc('month',rprt_date) as month, COUNT(*) as count from report group by date_trunc('month',rprt_date);`);
+        res.json(report.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+})
+
+//get all reports
+app.get("/", async (req, res) => {
+    try {
+        const allReports = await pool.query("SELECT * FROM report ORDER BY rprt_date DESC;");
+        res.json(allReports.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 //get one report via report id
 app.get("/id/:id", async (req, res) => {
     try {
         const { id } = req.params;
         const report = await pool.query("SELECT * FROM report WHERE rprt_id = $1;", [id]);
+        res.json(report.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+//get 3 recent reports
+app.get("/recent", async (req, res) => {
+    try {
+        const report = await pool.query(`SELECT * FROM report ORDER BY rprt_date DESC LIMIT 3;`);
+        res.json(report.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+//get trending report
+app.get("/trending", async (req, res) => {
+    try {
+        const report = await pool.query(`SELECT r.*, 
+                c.ctzn_firstname, 
+                c.ctzn_lastname, 
+                c.ctzn_profileimage,
+                pr.ctzn_id AS "reactor_id",
+                COALESCE(total_reacts.total_count, 0) AS total_reacts
+            FROM report r 
+            JOIN citizen c ON r.ctzn_id = c.ctzn_id 
+            LEFT JOIN 
+                reportreact pr 
+            ON 
+                r.rprt_id = pr.rprt_id
+            LEFT JOIN (
+                        SELECT 
+                            rprt_id, 
+                            COUNT(*) AS total_count 
+                        FROM 
+                            reportreact 
+                        GROUP BY 
+                            rprt_id
+                    ) total_reacts 
+            ON 
+                    r.rprt_id = total_reacts.rprt_id
+            WHERE r.status IN ('PENDING', 'IN PROGRESS')
+            ORDER BY total_reacts DESC;`);
         res.json(report.rows[0]);
     } catch (error) {
         console.error(error);
@@ -69,22 +160,12 @@ app.get("/view/:id/citizen/:ctzn_id", async (req, res) => {
     }
 });
 
-//get all reports
-app.get("/", async (req, res) => {
-    try {
-        const allReports = await pool.query("SELECT * FROM report;");
-        res.json(allReports.rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-    }
-});
 
 //get reports of citizen
 app.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const allReports = await pool.query("SELECT * FROM report WHERE ctzn_id = $1;", [id]);
+        const allReports = await pool.query("SELECT * FROM report WHERE ctzn_id = $1 ORDER BY rprt_date DESC;", [id]);
         res.json(allReports.rows);
     } catch (error) {
         console.error(error);

@@ -5,5 +5,7 @@ export const useCurrent = create(persist((set) => ({
     signedInAccount: null,
     setSignedInAccount: (account) => set({ signedInAccount: account }),
     isAdmin: false,
-    setAdmin: (bool) => set({ isAdmin: bool }),
+    setIsAdmin: (bool) => set({ isAdmin: bool }),
+    signUpClicked: false,
+    setSignUpClicked: (bool) => set({ signUpClicked: bool }),
 })));

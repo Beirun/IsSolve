@@ -13,7 +13,6 @@ const GoogleLoginButton = ({
   signUpFields,
   setGoogleProfileImage,
 }) => {
-
   const { enqueueSnackbar } = useSnackbar();
   const displaySnackbar = (message, variant) => {
     enqueueSnackbar(message, {
@@ -26,9 +25,8 @@ const GoogleLoginButton = ({
   };
 
   const navigate = useNavigate();
-  const { setSignedInAccount } = useCurrent();
+  const { setSignedInAccount, setIsAdmin } = useCurrent();
   const { getCitizenEmail } = useCitizen();
-  
 
   return (
     <Button
@@ -58,9 +56,15 @@ const GoogleLoginButton = ({
             const decode = jwtDecode(credentialResponse.credential);
             const citizen = await getCitizenEmail(decode.email);
             if (citizen) {
-              displaySnackbar("Logged in successfully.", "success");
               setSignedInAccount(citizen);
-              navigate("/dashboard");
+              displaySnackbar("Logged in successfully.", "success");
+              if (citizen.ctzn_id === -1) {
+                setIsAdmin(true);
+                navigate("/admin");
+              } else {
+                setIsAdmin(false);
+                navigate("/dashboard");
+              }
             } else {
               setIsRegistered(false);
               setGoogleProfileImage(decode.picture);

@@ -20,15 +20,18 @@ import {
   Backdrop,
   Fade,
 } from "@mui/material";
+import { useSnackbar } from "notistack";
 import { useNotification } from "./library/notification";
 import { useReport } from "./library/report";
 import { useCurrent } from "./library/current";
 import { useComment } from "./library/comment";
 import { useReact } from "./library/react";
+import { useResolve } from "./library/resolve";
 import { useNavigate, useParams } from "react-router-dom";
 import LoadingPage from "./components/LoadingPage";
 import moment from "moment";
 import Navbar from "./components/Navbar";
+import AdminNavbar from "./components/AdminNavbar";
 import "@fontsource/inter";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
@@ -47,12 +50,18 @@ import {
   IconX,
 } from "@tabler/icons-react";
 
-const ViewReport = () => {
+const ResolveReport = () => {
   const { id } = useParams();
   const commentRef = useRef(null);
   const [openLocation, setOpenLocation] = useState(false);
+  const { updateReport } = useResolve();
   const navigate = useNavigate();
-  const { addNotification, addNotificationCommentReact, getNotificationTime, getNotificationCommentReactTime } = useNotification();
+  const {
+    addNotification,
+    addNotificationCommentReact,
+    getNotificationTime,
+    getNotificationCommentReactTime,
+  } = useNotification();
   const {
     createCommentReact,
     deleteCommentReact,
@@ -63,10 +72,8 @@ const ViewReport = () => {
     iconUrl: "../src/resources/location.png",
     iconSize: [45, 90],
   });
-  const timeoutId = useRef(null);
-  const timeoutId2 = useRef(null);
-
-  const { signedInAccount } = useCurrent();
+  const { enqueueSnackbar } = useSnackbar();
+  const { signedInAccount, isAdmin } = useCurrent();
   const [report, setReport] = useState([]);
   const [comments, setComments] = useState([]);
   const [comment, setComment] = useState({
@@ -100,6 +107,22 @@ const ViewReport = () => {
     fetchData();
   }, [id]);
 
+  const displaySnackbar = (message, variant) => {
+    enqueueSnackbar(message, {
+      variant: variant,
+      anchorOrigin: {
+        vertical: "bottom",
+        horizontal: "right",
+      },
+    });
+  };
+  const handleCallToAction = async () => {
+    const data = await updateReport(id);
+    const newReport = {...report, status: "IN PROGRESS"};
+    handleUpdateStatusNotification();
+    setReport(newReport);
+    displaySnackbar("Report Status Updated", "success");
+  };
   const handleOpenLocation = () => {
     setOpenLocation(true);
   };
@@ -120,6 +143,17 @@ const ViewReport = () => {
     });
   };
 
+  const handleUpdateStatusNotification = async () => {
+    const data = await addNotification({
+      notification_sender: signedInAccount.ctzn_id,
+      notification_message: `Your report is now being addressed! Resolution is now in progress.`,
+      notification_date: formatDate(new Date()),
+      notification_status: "unread",
+      rprt_id: report.rprt_id,
+      ctzn_id: report.ctzn_id,
+    });
+  };
+
   const handleAddCommentReactNotification = async (comment) => {
     if (signedInAccount.ctzn_id === comment.ctzn_id) return;
     const notification = {
@@ -132,10 +166,11 @@ const ViewReport = () => {
       ctzn_id: comment.ctzn_id,
     };
     const time = await getNotificationCommentReactTime(notification);
-    console.log(dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60)
-    if (dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60) {
-        return;
-      }
+    if (
+      dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60
+    ) {
+      return;
+    }
     const data = await addNotificationCommentReact(notification);
   };
 
@@ -150,31 +185,32 @@ const ViewReport = () => {
       ctzn_id: report.ctzn_id,
     };
     const time = await getNotificationTime(notification);
-    
-    if (dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60) {
+
+    if (
+      dateDifferenceInSeconds(new Date(time.notification_date), new Date()) < 60
+    ) {
       return;
     }
     const data = await addNotification(notification);
   };
   const formatDate = (date) => {
-      return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      });
-  }
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  };
   const dateDifferenceInSeconds = (dateInitial, dateFinal) =>
     (dateFinal - dateInitial) / 1_000;
 
   const handleAddComment = async () => {
     const newComment = { ...comment };
-    if(newComment.comment_message.trim() === "") return;
+    if (newComment.comment_message.trim() === "") return;
     const data = await createComment(newComment);
-    console.log("data", data);
     setComments([{ ...newComment, comment_id: data.comment_id }, ...comments]);
     setComment({
       comment_message: "",
@@ -201,7 +237,8 @@ const ViewReport = () => {
     }
   };
   const handleReportLike = async () => {
-    await createReportReact({ rprt_id: id, ctzn_id: signedInAccount.ctzn_id });
+    const data = await createReportReact({ rprt_id: id, ctzn_id: signedInAccount.ctzn_id });
+    console.log(data);
     handleAddReportReactNotification();
   };
 
@@ -238,7 +275,7 @@ const ViewReport = () => {
         paddingTop: "10vh",
       }}
     >
-      <Navbar />
+      {isAdmin ? <AdminNavbar />:<Navbar />}
       {report && report.ctzn_id && comments ? (
         <Box
           sx={{
@@ -372,6 +409,7 @@ const ViewReport = () => {
               width: "33vw",
               height: "81.75vh",
               backgroundColor: "#2a2a2a",
+
               paddingX: "1.9vw",
             }}
           >
@@ -382,7 +420,7 @@ const ViewReport = () => {
                 marginTop: "4vh",
               }}
             >
-              {signedInAccount.ctzn_profileimage ? (
+              {report.ctzn_profileimage ? (
                 <Avatar
                   src={report.ctzn_profileimage}
                   sx={{ width: "4.2vw", height: "4.2vw" }}
@@ -417,6 +455,8 @@ const ViewReport = () => {
             <Box
               sx={{
                 marginTop: "1.2vh",
+                minHeight: "8.3vh",
+                maxHeight: "8.3vh",
               }}
             >
               <Typography
@@ -495,7 +535,6 @@ const ViewReport = () => {
                   width: "12vw",
                 }}
               >
-                {" "}
                 <Typography
                   sx={{
                     fontFamily: "Inter",
@@ -506,7 +545,7 @@ const ViewReport = () => {
                 >
                   {report.total_comments}
                 </Typography>
-                <IconButton onClick={() => commentRef.current.focus()}>
+                <IconButton disabled={report.status === 'RESOLVED'} onClick={() => report.status !== 'RESOLVED' ? commentRef.current.focus(): null}>
                   <IconMessage size={30} />
                 </IconButton>
               </Box>
@@ -528,7 +567,7 @@ const ViewReport = () => {
                   return (
                     <Box
                       key={comment.comment_id}
-                      sx={{ marginBottom: "2.5vh" }}
+                      sx={{ marginBottom: "2.5vh", minHeight: "12.8vh" }}
                     >
                       <Box
                         sx={{
@@ -569,18 +608,22 @@ const ViewReport = () => {
                             display: "flex",
                             alignItems: "center",
                             flexDirection: "flex-end",
+                            width: "2.55vw",
+                            marginTop: "1vh",
+                            zIndex: "",
                           }}
                         >
                           {/* <Typography>{comment.comment_likes}</Typography> */}
                           <Typography
                             fontSize="1.7vh"
-                            marginRight="1vw"
+                            marginRight={".5vw"}
                             fontFamily={"Inter"}
                             fontWeight={"400"}
                           >
                             {comment.total_reacts}
                           </Typography>
                           <IconButton
+                            sx={{ padding: "0px" }}
                             onClick={async () => {
                               if (
                                 comment.reactor_id === signedInAccount.ctzn_id
@@ -618,31 +661,9 @@ const ViewReport = () => {
                             }}
                           >
                             {comment.reactor_id ? (
-                              <IconHeartFilled
-                                // onClick={() =>{
-                                //     setComments(comments.map((c) => {
-                                //         if (c.comment_id === comment.comment_id) {
-                                //           return { ...c, reactor_id: '' };
-                                //         }
-                                //         return c;
-                                //       }));
-                                // }}
-                                color="red"
-                                size={30}
-                              />
+                              <IconHeartFilled color="red" size={24} />
                             ) : (
-                              <IconHeart
-                                // onClick={() => {
-                                //     setComments(comments.map((c) => {
-                                //       if (c.comment_id === comment.comment_id) {
-                                //         return { ...c, reactor_id: signedInAccount.ctzn_id };
-                                //       }
-                                //       return c;
-                                //     }));
-                                //   }}
-
-                                size={30}
-                              />
+                              <IconHeart size={24} />
                             )}
                           </IconButton>
                         </Box>
@@ -665,40 +686,89 @@ const ViewReport = () => {
                 </Box>
               )}
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Avatar
-                src={signedInAccount.ctzn_profileimage}
-                sx={{ width: "3.1vw", height: "3.1vw", marginRight: "1vw" }}
-              />
-              <TextField
-                multiline
-                rows={3}
-                label="Comment"
-                onChange={handleCommentChange}
-                onKeyDown={handleKeyDown}
-                value={comment.comment_message}
-                inputRef={commentRef}
-                variant="outlined"
-                fullWidth
+            {report.status === "RESOLVED" ? (
+                    <Button
+                    sx={{ height: "8.163vh", marginTop: "4.5vh" }}
+                    fullWidth
+                    color="info"
+                    variant="contained"
+                    // onClick={handleCallToAction}
+                    onClick={() => navigate("/report/"+report.rprt_id+'/resolution')}
+                  >
+                    VIEW RESOLUTION
+                  </Button>
+                ):
+                isAdmin ? (
+              <Box
                 sx={{
-                  marginTop: "2vh",
+                  height: "12.563vh",
+                  width: "29.362vw",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  flexDirection: "column",
+                  alignItems: "center",
                 }}
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={handleAddComment}
-                          sx={{ cursor: "pointer" }}
-                        >
-                          <IconSend2 />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-            </Box>
+              >
+                {
+                
+                report.status === "PENDING" ? (
+                  <Button
+                    sx={{ height: "8.163vh" }}
+                    fullWidth
+                    color="info"
+                    variant="contained"
+                    onClick={handleCallToAction}
+                  >
+                    CALL TO ACTION
+                  </Button>
+                ) : (
+                  <Button
+                    sx={{ height: "8.163vh" }}
+                    fullWidth
+                    color="info"
+                    variant="contained"
+                    onClick={() =>navigate("/resolve/"+report.rprt_id)}
+                  >
+                    RESOLVE
+                  </Button>
+                )}
+              </Box>
+            ) : (
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar
+                  src={signedInAccount.ctzn_profileimage}
+                  sx={{ width: "3.1vw", height: "3.1vw", marginRight: "1vw" }}
+                />
+                <TextField
+                  multiline
+                  rows={3}
+                  label="Comment"
+                  onChange={handleCommentChange}
+                  onKeyDown={handleKeyDown}
+                  value={comment.comment_message}
+                  inputRef={commentRef}
+                  variant="outlined"
+                  fullWidth
+                  sx={{
+                    marginTop: "2vh",
+                  }}
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={handleAddComment}
+                            sx={{ cursor: "pointer" }}
+                          >
+                            <IconSend2 />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+              </Box>
+            )}
           </Box>
           <Modal
             open={openLocation}
@@ -751,4 +821,4 @@ const ViewReport = () => {
   );
 };
 
-export default ViewReport;
+export default ResolveReport;

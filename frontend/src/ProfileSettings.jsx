@@ -1,5 +1,6 @@
 import { Box, Avatar, Typography, TextField, Button,IconButton, styled } from "@mui/material";
 import Navbar from "./components/Navbar";
+import AdminNavbar from "./components/AdminNavbar";
 import { useSnackbar } from "notistack";
 import React, { useMemo, useState } from "react";
 import { IconCamera, IconCameraFilled, IconCheck, IconX } from "@tabler/icons-react";
@@ -16,7 +17,7 @@ import "@fontsource/roboto/700.css";
 const ProfileSettings = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-  const { signedInAccount, setSignedInAccount } = useCurrent();
+  const { signedInAccount, setSignedInAccount, isAdmin } = useCurrent();
   const { updateCitizen, getCitizenUsername, getCitizenEmail } = useCitizen();
   const [citizenAccount, setCitizenAccount] = useState(signedInAccount);
   const [editProfile, setEditProfile] = useState(false);
@@ -250,7 +251,7 @@ const ProfileSettings = () => {
         paddingTop: "10vh",
       }}
     >
-      <Navbar />
+      {isAdmin ? <AdminNavbar /> : <Navbar />}
       <Box
         sx={{
           height: "80.136vh",

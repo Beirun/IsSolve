@@ -15,6 +15,7 @@ import Resizer from "react-image-file-resizer";
 
 import { IconFileUpload } from "@tabler/icons-react";
 import Navbar from "./components/Navbar";
+import { useNotification } from "./library/notification";
 import { useNavigate } from "react-router-dom";
 import { useCurrent } from "./library/current";
 import { useReport } from "./library/report";
@@ -57,6 +58,21 @@ const SubmitReport = () => {
     proofImage: false,
     location: false,
   });
+
+  const formatDate = (date) => {
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  };
+  const { addNotification } = useNotification();
+
+  
 
   const [selectedIssueType, setSelectIssueType] = useState("");
   const [typedIssueType, setTypedIssueType] = useState("");
@@ -228,8 +244,18 @@ const SubmitReport = () => {
     const newReport = {
       ...userReport,
       location: location.reverse().join(" - "),
+      issueType: userReport.issueType.toUpperCase()
     };
+    console.log(newReport)
     const report = await createReport(newReport);
+    const data = await addNotification({
+      notification_sender: signedInAccount.ctzn_id,
+      notification_message: `${signedInAccount.ctzn_firstname} ${signedInAccount.ctzn_lastname} has filed a new report.`,
+      notification_date: formatDate(new Date()),
+      notification_status: "unread",
+      rprt_id: report.rprt_id,
+      ctzn_id: -1,
+    });
     if (report) {
       setLoading(false);
       displaySnackbar("Report created successfully!", "success");
@@ -353,11 +379,13 @@ const SubmitReport = () => {
                         flexDirection: "column",
                       }}
                     >
+                      <Box sx={{ display: "flex", justifyContent: "center", textAlign:'justify' }}>
                       <Typography
-                        sx={{ fontFamily: "Roboto", fontWeight: "400" }}
+                        sx={{ fontFamily: "Roboto", fontWeight: "400", }}
                       >
                         DRAG AND DROP
                       </Typography>
+                      </Box>
                       <Box
                         sx={{
                           display: "flex",
@@ -390,7 +418,7 @@ const SubmitReport = () => {
                         <Typography
                           sx={{ fontFamily: "Roboto", fontWeight: "400" }}
                         >
-                          UPLOAD A FILE
+                          UPLOAD AN IMAGE
                         </Typography>
                       </Box>
                     </Box>

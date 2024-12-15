@@ -1,7 +1,16 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 import { useGoogleLogin } from "@react-oauth/google";
-import { Box, Button, styled, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  styled,
+  TextField,
+  Typography,
+  InputAdornment,
+} from "@mui/material";
+import { IconCheck } from "@tabler/icons-react";
+import { useReset } from "./library/reset";
 import { useSnackbar } from "notistack";
 import React, { useEffect, useState } from "react";
 import "@fontsource/inter";
@@ -19,9 +28,9 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
 const Login = () => {
-  const { getCitizenEmail, getCitizenUsername, createCitizen } =
-    useCitizen();
-  const { setSignedInAccount } = useCurrent();
+  const { getCitizenEmail, getCitizenUsername, createCitizen } = useCitizen();
+  const { sendVerificationCode, resetPassword } = useReset();
+  const { setSignedInAccount, signUpClicked, setIsAdmin } = useCurrent();
   const { enqueueSnackbar } = useSnackbar();
   const [isRegistered, setIsRegistered] = useState(true);
   const [registerClicked, setRegisterClicked] = useState(false);
@@ -35,6 +44,149 @@ const Login = () => {
     username: "",
     password: "",
   });
+
+  const [verificationCorrect, setVerificationCorrect] = useState(false);
+  const [sendButtonValue, setSendButtonValue] = useState(90);
+  const [verificationCodeText, setVerificationCodeText] = useState("");
+  const [errorVerificationCodeText, setErrorVerificationCodeText] =
+    useState("");
+  const [emailCorrect, setEmailCorrect] = useState(false);
+  const [verificationCodeSent, setVerificationCodeSent] = useState(false);
+  const [randomNumber, setRandomNumber] = useState("");
+
+  const [resetFields, setResetFields] = useState({
+    email: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const [errorResetText, setErrorResetText] = useState({
+    email: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const handleResetOnchange = (e) => {
+    setResetFields({ ...resetFields, [e.target.name]: e.target.value });
+    setErrorResetText({ ...errorResetText, [e.target.name]: "" });
+  };
+  const handleVerifyEmail = async () => {
+    if (resetFields.email.toLowerCase().trim() === "") {
+      setErrorResetText((prevError) => ({
+        ...prevError,
+        email: "Please Enter Email",
+      }));
+      return;
+    }
+    const data = await getCitizenEmail(resetFields.email.toLowerCase().trim());
+    if (!data) {
+      setErrorResetText((prevError) => ({
+        ...prevError,
+        email: "Email Not Found",
+      }));
+      return;
+    }
+    setEmailCorrect(true);
+    setVerificationCodeSent(true);
+    const verificationCode = Math.floor(Math.random() * 1000000)
+      .toString()
+      .padStart(6, "0");
+    setRandomNumber(verificationCode);
+    await sendVerificationCode({
+      email: resetFields.email.toLowerCase().trim(),
+      verificationCode: verificationCode,
+    });
+  };
+
+  const verificationCodeOnChange = (e) => {
+    if (!/^[0-9]+$/.test(e.target.value) && e.target.value !== "") return;
+    if (e.target.value.length > 6) return;
+    setVerificationCodeText(e.target.value);
+    setErrorVerificationCodeText("");
+  };
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (
+        verificationCodeText === randomNumber &&
+        verificationCodeText !== "" &&
+        verificationCodeText.length === 6
+      ) {
+        setVerificationCorrect(true);
+        // You can also call a function to handle the correct verification code
+        clearInterval(intervalId);
+      } else if (
+        verificationCodeText !== randomNumber &&
+        verificationCodeText !== "" &&
+        verificationCodeText.length === 6
+      ) {
+        setErrorVerificationCodeText("Incorrect Verification Code");
+      }
+    }, 1000); // 1000ms = 1s
+    return () => clearInterval(intervalId);
+  }, [verificationCodeText, randomNumber]);
+
+  useEffect(() => {
+    let intervalId;
+
+    if (emailCorrect && sendButtonValue > 0) {
+      intervalId = setInterval(() => {
+        setSendButtonValue((prevCountdown) => prevCountdown - 1);
+      }, 1000);
+
+      return () => clearInterval(intervalId);
+    }
+    if (sendButtonValue === 0) {
+      setSendButtonValue(90);
+      setEmailCorrect(false);
+    }
+  }, [emailCorrect, sendButtonValue]);
+
+  const handleResetPassword = async () => {
+    const newErrorText = { ...errorResetText };
+    console.log("resetFields", resetFields);
+    if (resetFields.newPassword === "")
+      newErrorText.newPassword = "Please Enter New Password";
+    if (resetFields.confirmPassword === "")
+      newErrorText.confirmPassword = "Please Enter Confirm New Password";
+
+    if (
+      resetFields.newPassword === "" &&
+      resetFields.confirmPassword === ""
+    ) {
+      setErrorResetText(newErrorText);
+      return;
+    }
+
+    if (resetFields.newPassword !== resetFields.confirmPassword) {
+      newErrorText.confirmPassword = "Passwords do not match";
+      setErrorResetText(newErrorText);
+      return;
+    }
+
+    if (resetFields.newPassword === resetFields.confirmPassword) {
+      const data = await resetPassword(resetFields.email.toLowerCase().trim(), {
+        password: resetFields.newPassword,
+      });
+      if (data) {
+        displaySnackbar("Password Successfully Changed", "success");
+        setSignUpFields((signUpFields) => ({
+          ...signUpFields,
+          username: "",
+          firstname: "",
+          lastname: "",
+          password: "",
+          confirmpassword: "",
+        }));
+
+        setForgotAnimation("translateResetToBottom 750ms ease-in-out");
+        setAnimation("translateToBottom 750ms ease-in-out");
+        if (registerClicked) setRegisterClicked(false);
+        if (forgotClicked) setForgotClicked(false);
+        if (timesClicked === 0) setTimesClicked(timesClicked + 1);
+        setCurrent("signin");
+      }
+    }
+  };
 
   const [errorUsernameText, setErrorUsernameText] = useState("");
   const [errorPasswordText, setErrorPasswordText] = useState("");
@@ -55,7 +207,7 @@ const Login = () => {
     email: "",
     password: "",
     confirmpassword: "",
-    img:'',
+    img: "",
   });
 
   const textFieldStyle = {
@@ -80,9 +232,14 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (signUpClicked) {
+      setAnimation("translateToRight 750ms ease-in-out");
+      setCurrent("register");
+    }
+  }, []);
+  useEffect(() => {
     if (!isRegistered) {
       if (current !== "register") {
-        
         setErrorSignUpText({
           username: "",
           firstname: "",
@@ -113,17 +270,17 @@ const Login = () => {
   };
 
   const handleInputRegister = (e) => {
-    const errorConfirmPasswordText ={...errorSignUpText}
+    const errorConfirmPasswordText = { ...errorSignUpText };
     setSignUpFields({
       ...signUpFields,
       [e.target.name]: e.target.value,
     });
     if (e.target.name === "confirmpassword") {
       if (errorSignUpText[e.target.name] === "Passwords do not match") {
-        errorConfirmPasswordText.password=''
+        errorConfirmPasswordText.password = "";
       }
     }
-    errorConfirmPasswordText[e.target.name]=''
+    errorConfirmPasswordText[e.target.name] = "";
     setErrorSignUpText(errorConfirmPasswordText);
   };
 
@@ -156,8 +313,14 @@ const Login = () => {
         return;
       } else {
         setSignedInAccount(citizen);
-        navigate("/dashboard");
         displaySnackbar("Logged in successfully.", "success");
+        if (citizen.ctzn_id === 0) {
+          navigate("/admin");
+          setIsAdmin(true);
+        } else {
+          navigate("/dashboard");
+          setIsAdmin(false);
+        }
         return;
       }
     }
@@ -177,7 +340,6 @@ const Login = () => {
     const citizen = await getCitizenUsername(
       signUpFields.username.trim().toLowerCase()
     );
-    console.log(citizen)
     if (citizen) {
       setErrorUsernameText.username = "Username already exists";
       setErrorSignUpText(setErrorUsernameText);
@@ -188,7 +350,6 @@ const Login = () => {
       ...signUpFields,
       username: signUpFields.username.trim().toLowerCase(),
     });
-    console.log(newCitizen);
     setSignedInAccount(newCitizen);
     displaySnackbar("Registered successfully.", "success");
     navigate("/dashboard");
@@ -244,7 +405,7 @@ const Login = () => {
     }
     const citizen = await getCitizenUsername(
       signUpFields.username.trim().toLowerCase()
-    )
+    );
     if (citizen) {
       secondErrorSignUpText.username = "Username already exists";
       setErrorSignUpText(secondErrorSignUpText);
@@ -257,15 +418,14 @@ const Login = () => {
       return;
     }
     const preCitizen = {
-      ...signUpFields, username: signUpFields.username.trim().toLowerCase(),}
+      ...signUpFields,
+      username: signUpFields.username.trim().toLowerCase(),
+    };
     const newCitizen = await createCitizen(preCitizen);
-    console.log(newCitizen);
     setSignedInAccount(newCitizen);
     displaySnackbar("Registered successfully.", "success");
     navigate("/dashboard");
   };
-
-
 
   return (
     <Box
@@ -291,10 +451,48 @@ const Login = () => {
       >
         <Box
           sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            flexDirection: "column",
+            transform: "drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.5))",
+            width: "55vw",
+            height: "100vh",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            zIndex: 1,
+          }}
+        >
+          <img
+            src="../src/resources/LOGO-WHITE.png"
+            alt=""
+            width={"47%"}
+            style={{
+              filter: "drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.7))",
+              marginBottom: "2rem",
+            }}
+          />
+          <Typography
+            variant="h4"
+            sx={{
+              filter: "drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.7))",
+              fontSize: "3.1rem",
+              fontWeight: "bold",
+            }}
+          >
+            SEE IT. SAY IT. SOLVE IT
+          </Typography>
+        </Box>
+        <Box
+          sx={{
             width: "100%",
             height: "100%",
             opacity: 0.8,
             backgroundColor: "#121212",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
           }}
         ></Box>
       </Box>
@@ -384,9 +582,6 @@ const Login = () => {
                   setForgotAnimation(
                     "translateResetToBottom 750ms ease-in-out"
                   );
-                  setRegisterButtonAnimation(
-                    "registerMoveBottom 750ms ease-in-out"
-                  );
                 }
                 if (!registerClicked) setRegisterClicked(true);
                 if (forgotClicked) setForgotClicked(false);
@@ -462,9 +657,6 @@ const Login = () => {
               },
               "@keyframes translateToBottomRight": {
                 "0%": {
-                  transform: "translate(0,-100%)",
-                },
-                "25%": {
                   transform: "translate(-33.33%,-100%)",
                 },
                 "100%": {
@@ -476,12 +668,12 @@ const Login = () => {
                   transform: "translateX(-33.33%)",
                 },
                 "100%": {
-                  transform: "translateX(-66.33%)",
+                  transform: "translateX(-66.66%)",
                 },
               },
               "@keyframes translateBackRight": {
                 "0%": {
-                  transform: "translateX(-66.33%)",
+                  transform: "translateX(-66.66%)",
                 },
                 "100%": {
                   transform: "translateX(-33.33%)",
@@ -489,7 +681,7 @@ const Login = () => {
               },
               "@keyframes translateFurtherLeft": {
                 "0%": {
-                  transform: "translateX(-66.33%)",
+                  transform: "translateX(-66.66%)",
                 },
                 "100%": {
                   transform: "translateX(0%)",
@@ -576,11 +768,24 @@ const Login = () => {
               <Typography
                 onClick={() => {
                   if (current !== "forgot") {
+                    setVerificationCorrect(false);
+                    setSendButtonValue(90);
+                    setVerificationCodeText("");
+                    setEmailCorrect(false);
+                    setVerificationCodeSent(false);
+                    setRandomNumber("");
+                    setResetFields({
+                      email: "",
+                      newPassword: "",
+                      confirmPassword: "",
+                    });
+                    setErrorResetText({
+                      email: "",
+                      newPassword: "",
+                      confirmPassword: "",
+                    });
                     if (current === "signin") {
                       setAnimation("translateToTop 750ms ease-in-out");
-                      setSignInButtonAnimation(
-                        "signInMoveTop 750ms ease-in-out"
-                      );
                     } else {
                       setAnimation("translateToTop 750ms ease-in-out");
                     }
@@ -1044,7 +1249,7 @@ const Login = () => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
+                justifyContent: "flex-start",
                 width: "45vw",
                 height: "70vh",
                 marginTop: "10vh",
@@ -1056,13 +1261,13 @@ const Login = () => {
                     marginTop: "10vh",
                   },
                   "100%": {
-                    transform: "translateY(-100%)",
+                    transform: "translateY(-102%)",
                     marginTop: "0vh",
                   },
                 },
                 "@keyframes translateResetToBottom": {
                   "0%": {
-                    transform: "translateY(-100%)",
+                    transform: "translateY(-102%)",
                     marginTop: "0vh",
                   },
                   "100%": {
@@ -1075,76 +1280,163 @@ const Login = () => {
               <Typography
                 sx={{
                   color: "white",
-                  fontSize: "2rem",
-                  fontWeight: "bold",
+                  fontSize: "1.45rem",
+                  fontWeight: "600",
                   fontFamily: "Inter",
                   zIndex: 1,
-                  marginBottom: "5%",
+                  marginBottom: "7vh",
                 }}
               >
                 RESET PASSWORD
               </Typography>
-              <input
-                type="text"
-                placeholder="Email"
-                style={{
-                  width: "55%",
-                  height: "1.5rem",
-                  marginBottom: "5%",
-                  borderRadius: "20px",
-                  border: "none",
-                  outline: "#013C38 solid 1px",
-                  padding: "0.5rem",
-                  paddingLeft: "1rem",
-                  fontSize: "1rem",
-                  fontFamily: "Inter",
-                  backgroundColor: "white",
-                }}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                style={{
-                  width: "55%",
-                  height: "1.5rem",
-                  marginBottom: "5%",
-                  borderRadius: "20px",
-                  border: "none",
-                  outline: "#013C38 solid 1px",
-                  padding: "0.5rem",
-                  paddingLeft: "1rem",
-                  fontSize: "1rem",
-                  fontFamily: "Inter",
-                  backgroundColor: "white",
-                }}
-              />
-              <input
-                type="password"
-                placeholder="Confirm Password"
-                style={{
-                  width: "55%",
-                  height: "1.5rem",
-                  marginBottom: "5%",
-                  borderRadius: "20px",
-                  border: "none",
-                  outline: "#013C38 solid 1px",
-                  padding: "0.5rem",
-                  paddingLeft: "1rem",
-                  fontSize: "1rem",
-                  fontFamily: "Inter",
-                  backgroundColor: "white",
-                }}
-              />
-              <Button
+
+              <Box
                 sx={{
-                  color: "white",
-                  backgroundColor: "#013C38",
-                  width: "25%",
-                  borderRadius: "20px",
-                  textTransform: "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  width: "100%",
+                  height: "10.75vh",
                 }}
               >
-                Log In
+                <TextField
+                  error={errorResetText.email !== ""}
+                  helperText={errorResetText.email}
+                  size="small"
+                  name="email"
+                  onChange={handleResetOnchange}
+                  value={resetFields.email}
+                  label="Email"
+                  style={{ ...textFieldStyle }}
+                  disabled={verificationCorrect}
+                />
+              </Box>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  width: "25vw",
+                  height: "10.75vh",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    height: "10.75vh",
+                  }}
+                >
+                  <TextField
+                    disabled={!verificationCodeSent || verificationCorrect}
+                    size="small"
+                    name="verificationCode"
+                    label="Verification Code"
+                    style={{ ...textFieldStyle, width: "15.039vw" }}
+                    onChange={verificationCodeOnChange}
+                    value={verificationCodeText}
+                    error={errorVerificationCodeText !== ""}
+                    helperText={errorVerificationCodeText}
+                    slotProps={
+                      verificationCorrect
+                        ? {
+                            input: {
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <IconCheck
+                                    stroke={1}
+                                    style={{ color: "rgb(76, 175, 80)" }}
+                                  />
+                                </InputAdornment>
+                              ),
+                            },
+                          }
+                        : {}
+                    }
+                  />
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    width: "8.919vw",
+                    height: "5.442vh",
+                  }}
+                >
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="info"
+                    disabled={emailCorrect || verificationCorrect}
+                    onClick={handleVerifyEmail}
+                  >
+                    {emailCorrect ? sendButtonValue + " S" : "Send"}
+                  </Button>
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  width: "100%",
+                  height: "10.75vh",
+                }}
+              >
+                <TextField
+                  disabled={!verificationCorrect}
+                  type="password"
+                  error={errorResetText.newPassword !== ""}
+                  helperText={errorResetText.newPassword}
+                  size="small"
+                  name="newPassword"
+                  onChange={handleResetOnchange}
+                  value={resetFields.newPassword}
+                  label="New Password"
+                  style={{ ...textFieldStyle }}
+                />
+              </Box>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "flex-start",
+                  width: "100%",
+                  height: "10.75vh",
+                }}
+              >
+                <TextField
+                  disabled={!verificationCorrect}
+                  error={errorResetText.confirmPassword !== ""}
+                  helperText={errorResetText.confirmPassword}
+                  type="password"
+                  name="confirmPassword"
+                  size="small"
+                  onChange={handleResetOnchange}
+                  value={resetFields.confirmPassword}
+                  label="Confirm New Password"
+                  style={{ ...textFieldStyle }}
+                />
+              </Box>
+
+              <Button
+                disabled={!verificationCorrect}
+                variant="contained"
+                color="info"
+                size="large"
+                onClick={handleResetPassword}
+                sx={{
+                  width: "25vw",
+                }}
+              >
+                confirm
               </Button>
             </Box>
           </Box>

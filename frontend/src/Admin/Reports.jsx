@@ -1,55 +1,38 @@
-import {
-  Box,
-  Button,
-  Typography,
-  IconButton,
-  Menu,
-  MenuItem,
-} from "@mui/material";
-import Navbar from "./components/Navbar";
-import AdminNavbar from "./components/AdminNavbar";
+import { Box, Button, Typography, IconButton, Menu, MenuItem } from "@mui/material";
+import AdminNavbar from "../components/AdminNavbar";
 import { IconSortDescending } from "@tabler/icons-react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrent } from "./library/current";
-import { useReport } from "./library/report";
-import React, { useEffect, useState } from "react";
-import LoadingPage from "./components/LoadingPage";
-import Report from "./components/Report";
+import { useReport } from "../library/report";
+import { useCurrent } from "../library/current";
+import Report from "../components/Report";
+import LoadingPage from "../components/LoadingPage";
 import "@fontsource/roboto";
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-const SearchReports = () => {
-  const { id } = useParams();
+const Reports = () => {
   const navigate = useNavigate();
   const [noReports, setNoReports] = useState(-1);
-  const { getReports } = useReport();
+  const [reports, setReports] = useState([]);
   const [selectedIssueType, setSelectedIssueType] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [reports, setReports] = useState([]);
-  const { isAdmin } = useCurrent();
+  const { getAllReports } = useReport();
+  const { signedInAccount } = useCurrent();
+  if (!signedInAccount) {
+    navigate("/");
+  }
   useEffect(() => {
     async function fetchData() {
-      const reports = await getReports();
-      const filteredReports = reports.filter((report) => {
-        if (
-          report.description.toLowerCase().includes(id.toLowerCase()) ||
-          report.issue_type.toLowerCase().includes(id.toLowerCase()) ||
-          report.location.toLowerCase().includes(id.toLowerCase()) ||
-          report.status.toLowerCase().includes(id.toLowerCase())
-        ) {
-          return true;
-        }
-        return false;
-      });
-      setReports(filteredReports);
-      setNoReports(filteredReports.length);
+      const userReports = await getAllReports(signedInAccount.ctzn_id);
+      setReports(userReports);
+      setNoReports(userReports.length);
     }
     fetchData();
-  }, [id]);
+  }, []);
+
   const status = ["PENDING", "IN PROGRESS", "RESOLVED"];
 
   const issueTypes = [
@@ -71,6 +54,7 @@ const SearchReports = () => {
   const handleClose = () => {
     setAnchorEl(null);
   };
+  console.log("reports", reports);
   return (
     <Box
       sx={{
@@ -83,8 +67,8 @@ const SearchReports = () => {
         paddingTop: "10vh",
       }}
     >
-      {isAdmin ? <AdminNavbar /> : <Navbar />}
-      {(reports && reports.length > 0) || noReports === 0 ? (
+      <AdminNavbar />
+      {reports && reports.length > 0 || noReports===0 ? (
         <Box
           sx={{
             display: "flex",
@@ -92,31 +76,35 @@ const SearchReports = () => {
             flexDirection: "column",
             width: "87.97vw",
             minHeight: "90vh",
-            paddingTop: "4vh",
+            paddingTop: "8.7vh",
           }}
         >
           <Box
             sx={{
               display: "flex",
-              justifyContent: "center",
+              justifyContent: "flex-start",
               alignItems: "center",
               width: "100%",
-              height: "9.388vh",
-              borderRadius: "20px",
-              backgroundColor: "#252525",
-              marginBottom: "6.25vh",
             }}
           >
             <Typography
               sx={{
-                fontFamily: "Inter",
+                fontSize: "1.5rem",
                 fontWeight: "600",
-                fontSize: "3.05vh",
+                fonttFamily: "Inter",
               }}
             >
-              Results For "{id}"
+              REPORTS
             </Typography>
           </Box>
+          <Box
+            sx={{
+              width: "100%",
+              height: "1px",
+              backgroundColor: "white",
+              marginY: "3vh",
+            }}
+          />
           <Box
             sx={{
               display: "flex",
@@ -285,28 +273,20 @@ const SearchReports = () => {
           />
           {reports.filter((report) => {
             if (selectedIssueType === "" && selectedStatus === "") return true;
+            if(selectedIssueType === report.issue_type && selectedStatus === report.status)
+              return true
             if (
-              selectedIssueType === report.issue_type &&
-              selectedStatus === report.status
+              selectedIssueType !== "" && selectedStatus === "" &&
+              report.issue_type === selectedIssueType 
             )
               return true;
-            if (
-              selectedIssueType !== "" &&
-              selectedStatus === "" &&
-              report.issue_type === selectedIssueType
-            )
-              return true;
-            if (
-              selectedStatus !== "" &&
-              selectedIssueType === "" &&
-              report.status === selectedStatus
-            )
+            if (selectedStatus !== "" && selectedIssueType === "" && report.status === selectedStatus)
               return true;
             if(selectedIssueType === "OTHER")
               if(!issueTypes.includes(report.issue_type))
                 return true
             return false;
-          }).length === 0 ? (
+          }).length === 0 ? ( 
             <Typography
               sx={{
                 fontSize: "7.5vh",
@@ -320,62 +300,39 @@ const SearchReports = () => {
               NO REPORTS FOUND
             </Typography>
           ) : (
-            reports
-              .filter((report) => {
-                if (selectedIssueType === "" && selectedStatus === "")
-                  return true;
-                if (
-                  selectedIssueType === report.issue_type &&
-                  selectedStatus === report.status
-                )
-                  return true;
-                if (
-                  selectedIssueType !== "" &&
-                  selectedStatus === "" &&
-                  report.issue_type === selectedIssueType
-                )
-                  return true;
-                if (
-                  selectedStatus !== "" &&
-                  selectedIssueType === "" &&
-                  report.status === selectedStatus
-                )
-                  return true;
-                if(selectedIssueType === "OTHER")
-                  if(!issueTypes.includes(report.issue_type))
-                    return true
-                return false;
-              })
+            reports.filter((report) => {
+              if (selectedIssueType === "" && selectedStatus === "") return true;
+              if(selectedIssueType === report.issue_type && selectedStatus === report.status)
+                return true
+              if (
+                selectedIssueType !== "" && selectedStatus === "" &&
+                report.issue_type === selectedIssueType 
+              )
+                return true;
+              if (selectedStatus !== "" && selectedIssueType === "" && report.status === selectedStatus)
+                return true;
+              if(selectedIssueType === "OTHER")
+                if(!issueTypes.includes(report.issue_type))
+                  return true
+              return false;
+            })
               .map((report, index) => (
-                <Report
-                  report={report}
-                  reports={reports.filter((report) => {
-                    if (selectedIssueType === "" && selectedStatus === "")
-                      return true;
-                    if (
-                      selectedIssueType === report.issue_type &&
-                      selectedStatus === report.status
-                    )
-                      return true;
-                    if (
-                      selectedIssueType !== "" &&
-                      selectedStatus === "" &&
-                      report.issue_type === selectedIssueType
-                    )
-                      return true;
-                    if (
-                      selectedStatus !== "" &&
-                      selectedIssueType === "" &&
-                      report.status === selectedStatus
-                    )
-                      return true;
-                    if(selectedIssueType === "OTHER")
-                      if(!issueTypes.includes(report.issue_type))
-                        return true
-                    return false;
-                  })}
-                  index={index}
-                />
+                <Report report={report} reports={reports.filter((report) => {
+                  if (selectedIssueType === "" && selectedStatus === "") return true;
+                  if(selectedIssueType === report.issue_type && selectedStatus === report.status)
+                    return true
+                  if (
+                    selectedIssueType !== "" && selectedStatus === "" &&
+                    report.issue_type === selectedIssueType 
+                  )
+                    return true;
+                  if (selectedStatus !== "" && selectedIssueType === "" && report.status === selectedStatus)
+                    return true;
+                  if(selectedIssueType === "OTHER")
+                    if(!issueTypes.includes(report.issue_type))
+                      return true
+                  return false;
+                })} index={index} />
               ))
           )}
         </Box>
@@ -386,4 +343,4 @@ const SearchReports = () => {
   );
 };
 
-export default SearchReports;
+export default Reports;

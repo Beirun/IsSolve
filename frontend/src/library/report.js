@@ -19,6 +19,42 @@ export const useReport = create((set) => ({
             console.error(error);
         }
     },
+    getIssueTypeCount: async () => {
+        try {
+            const response = await fetch(`http://localhost:3000/report/count/type`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+        }
+    },
+    getIssueStatusCount: async () => {
+        try {
+            const response = await fetch(`http://localhost:3000/report/count/status`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+        }
+    },
+    getReportCount: async () => {
+        try {
+            const response = await fetch(`http://localhost:3000/report/count/report`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+        }
+    },
+    getAllReports: async () => {
+        try {
+            const response = await fetch(`http://localhost:3000/report`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+        }
+    },
     getUserReports: async (id) => {
             try {
                 const response = await fetch(`http://localhost:3000/report/${id}`);
@@ -53,11 +89,28 @@ export const useReport = create((set) => ({
             const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
             const response = await fetch(url);
             const data = await response.json();
-            
             return data;
 
           } catch (error) {
             console.error('Error fetching address:', error);
           }
-    }
+    },
+    getRecentReports: async () => {
+        try {
+            const response = await fetch(`http://localhost:3000/report/recent`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+        }
+    },
+    getTrendingReport: async () => {
+        try {
+            const response = await fetch(`http://localhost:3000/report/trending`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+        }
+    },
 }));

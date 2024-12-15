@@ -9,17 +9,23 @@ import {
   MenuItem,
   InputAdornment,
   Typography,
-  Badge
+  Badge,
+  Fab,
 } from "@mui/material";
 import React, { useRef, useState, useEffect } from "react";
-import {IconBell, IconSearch} from "@tabler/icons-react"
+import {
+  IconBell,
+  IconSearch,
+  IconArrowLeft,
+  IconCheck,
+} from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useSnackbar } from "notistack";
 import { useCitizen } from "../library/citizen";
 import { useNotification } from "../library/notification";
 import { useCurrent } from "../library/current";
 
-const Navbar = () => {
+const Navbar = ({ logoRoute, isDashboard }) => {
   const displaySnackbar = (message, variant) => {
     enqueueSnackbar(message, {
       variant: variant,
@@ -29,26 +35,35 @@ const Navbar = () => {
       },
     });
   };
-  const {getCitizenNotifications, updateNotification, updateNotificationCommentReact} = useNotification();
+  const {
+    getCitizenNotifications,
+    updateNotification,
+    updateNotificationCommentReact,
+  } = useNotification();
   const [citizenNotifications, setCitizenNotifications] = useState([]);
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
-  const { signedInAccount, setSignedInAccount } = useCurrent();
+  const { signedInAccount, setSignedInAccount, setSignUpClicked, setIsAdmin } =
+    useCurrent();
   const [notificationCount, setNotificationCount] = useState(0);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
 
-
   useEffect(() => {
     async function fetchData() {
-      const notifications = await getCitizenNotifications(signedInAccount.ctzn_id);
+      const notifications = await getCitizenNotifications(
+        signedInAccount.ctzn_id
+      );
       setCitizenNotifications(notifications);
-      setNotificationCount(notifications.filter((notification) => notification.notification_status === "unread").length);
+      setNotificationCount(
+        notifications.filter(
+          (notification) => notification.notification_status === "unread"
+        ).length
+      );
     }
 
     fetchData();
   }, []);
-
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -62,22 +77,28 @@ const Navbar = () => {
   const handleNotificationClick = (event) => {
     setNotificationAnchorEl(event.currentTarget);
   };
-  const handleNotificationClose = async() => {
+  const handleNotificationClose = async () => {
     setNotificationCount(0);
     setNotificationAnchorEl(null);
     for (let i = 0; i < citizenNotifications.length; i++) {
-      if(citizenNotifications[i].notification_status === "unread") {
-        if(citizenNotifications[i].notification_message.includes("reacted to your comment.")){ 
-          await updateNotificationCommentReact(citizenNotifications[i].notification_id,{notification_status: "read"});
-        }
-        else{
-          await updateNotification(citizenNotifications[i].notification_id,{notification_status: "read"});
+      if (citizenNotifications[i].notification_status === "unread") {
+        if (
+          citizenNotifications[i].notification_message.includes(
+            "reacted to your comment."
+          )
+        ) {
+          await updateNotificationCommentReact(
+            citizenNotifications[i].notification_id,
+            { notification_status: "read" }
+          );
+        } else {
+          await updateNotification(citizenNotifications[i].notification_id, {
+            notification_status: "read",
+          });
         }
       }
-    }  
+    }
   };
-
-  console.log("citizenNotifications", citizenNotifications);
 
   const [search, setSearch] = useState("");
   const searchInputRef = useRef(null);
@@ -88,7 +109,6 @@ const Navbar = () => {
 
   const handleSearchKeyDown = (event) => {
     if (event.key === "Enter") {
-      
       event.preventDefault();
       navigate(`/search/${search}`);
       setSearch("");
@@ -112,6 +132,27 @@ const Navbar = () => {
         zIndex: "10",
       }}
     >
+      {isDashboard ? null : (
+        <Fab
+          variant="extended"
+          color="info"
+          size="large"
+          onClick={() => navigate(-1)}
+          sx={{
+            position: "fixed",
+            top: "14.5vh",
+            transform: "translateX(-63%)",
+            zIndex: "10",
+            transition: "transform 0.2s ease-in-out",
+            "&:hover": {
+              transform: "translateX(-23.33%)",
+            },
+          }}
+        >
+          <Typography fontWeight={"bold"}>&nbsp;&nbsp;&nbsp;Back</Typography>
+          <IconArrowLeft />
+        </Fab>
+      )}
       <Box
         sx={{
           display: "flex",
@@ -123,7 +164,11 @@ const Navbar = () => {
         }}
       >
         <img
-          src="../src/resources/LOGO-WHITE.png"
+          src={
+            logoRoute
+              ? "../../src/resources/LOGO-WHITE.png"
+              : "../src/resources/LOGO-WHITE.png"
+          }
           alt="IsSolve"
           style={{ width: "12.5vh" }}
         />
@@ -184,7 +229,6 @@ const Navbar = () => {
           }}
         />
 
-
         {/* Notification Icon */}
         <IconButton
           onClick={handleNotificationClick}
@@ -193,9 +237,11 @@ const Navbar = () => {
           }}
         >
           {citizenNotifications.length === 0 ? (
-            <IconBell size={40} stroke={1.5}/>
-          ):(
-            <Badge badgeContent={notificationCount} color="error"><IconBell size={40} stroke={1.5}/></Badge>
+            <IconBell size={40} stroke={1.5} />
+          ) : (
+            <Badge badgeContent={notificationCount} color="error">
+              <IconBell size={40} stroke={1.5} />
+            </Badge>
           )}
         </IconButton>
         <Menu
@@ -204,12 +250,12 @@ const Navbar = () => {
           open={notificationOpen}
           onClose={handleNotificationClose}
           anchorOrigin={{
-            vertical: 'bottom',
-            horizontal: 'center',
+            vertical: "bottom",
+            horizontal: "center",
           }}
           transformOrigin={{
-            vertical: 'top',
-            horizontal: 'center',
+            vertical: "top",
+            horizontal: "center",
           }}
           MenuListProps={{
             "aria-labelledby": "basic-button",
@@ -221,28 +267,57 @@ const Navbar = () => {
           }}
         >
           {citizenNotifications.length === 0 ? (
-            <MenuItem
-              key="no-notifications"
-              disabled
-            >
-              <Typography variant="h5" sx={{height:"20vh", width: "15vw", textAlign: "center",display:'flex', alignItems:"center", justifyContent:"center",}} >No Notifications</Typography>
+            <MenuItem key="no-notifications" disabled>
+              <Typography
+                variant="h5"
+                sx={{
+                  height: "20vh",
+                  width: "15vw",
+                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                No Notifications
+              </Typography>
             </MenuItem>
-          ):(
+          ) : (
             citizenNotifications.map((notification) => (
-              <MenuItem key={notification.notification_id}
-                sx={{ width: "25vw", backgroundColor: notification.notification_status === "unread" ? "#3a3a3a" : "#2e2e2e" }}
-              onClick={() => {
-                handleNotificationClose();
-                navigate(`/report/${notification.rprt_id}`)
-                }}>
-                <Avatar src={notification.ctzn_profileimage} /> <Typography variant="caption" color="inherit" sx={{ marginLeft: "1vw" }}>{notification.notification_message}</Typography>
+              <MenuItem
+                key={notification.notification_id}
+                sx={{
+                  width: "25vw",
+                  backgroundColor:
+                    notification.notification_status === "unread"
+                      ? "#3a3a3a"
+                      : "#2e2e2e",
+                }}
+                onClick={() => {
+                  handleNotificationClose();
+                  navigate(`/report/${notification.rprt_id}`);
+                }}
+              >
+                {notification.notification_sender === 0 ? (
+                  <Avatar sx={{ backgroundColor: "#a1a1a1" }}>
+                    <IconCheck size={30} stroke={2.5} color="green" />
+                  </Avatar>
+                ) : (
+                  <Avatar src={notification.ctzn_profileimage} />
+                )}
+                
+                <Typography
+                  variant="caption"
+                  color="inherit"
+                  sx={{ marginLeft: "1vw", width: "25vw", height: "5vh", textWrap: "wrap", alignItems: "center", display: "flex" }}
+                >
+                  {notification.notification_message}
+                </Typography>
+                
               </MenuItem>
             ))
           )}
         </Menu>
-
-
-
 
         {/* Profile Icon */}
         <IconButton
@@ -253,9 +328,8 @@ const Navbar = () => {
           onClick={handleClick}
         >
           {signedInAccount.ctzn_profileimage ? (
-            <Avatar src={signedInAccount.ctzn_profileimage}/>
-          ) :
-          (
+            <Avatar src={signedInAccount.ctzn_profileimage} />
+          ) : (
             <Avatar />
           )}
         </IconButton>
@@ -268,27 +342,38 @@ const Navbar = () => {
             "aria-labelledby": "basic-button",
           }}
         >
-          <MenuItem onClick={() => {
-            handleClose();
-            navigate(`/profile`)
-            }}>
-          {signedInAccount.ctzn_profileimage ? (
-            <Avatar src={signedInAccount.ctzn_profileimage}/>
-          ) :
-          (
-            <Avatar {...stringAvatar(signedInAccount.ctzn_firstname+" "+signedInAccount.ctzn_lastname)} />
-          )}
-            <Typography sx={{ marginLeft: "1vw" }} fontFamily="Inter" variant="body2">{signedInAccount.ctzn_firstname} {signedInAccount.ctzn_lastname}</Typography>
-          </MenuItem>
-          <MenuItem onClick={
-            () => {
+          <MenuItem
+            onClick={() => {
               handleClose();
+              navigate(`/profile`);
+            }}
+          >
+            {signedInAccount.ctzn_profileimage ? (
+              <Avatar src={signedInAccount.ctzn_profileimage} />
+            ) : (
+              <Avatar />
+            )}
+            <Typography
+              sx={{ marginLeft: "1vw" }}
+              fontFamily="Inter"
+              variant="body2"
+            >
+              {signedInAccount.ctzn_firstname} {signedInAccount.ctzn_lastname}
+            </Typography>
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              handleClose();
+              navigate("/login");
+              setIsAdmin(false);
+              setSignUpClicked(false);
               setSignedInAccount(null);
               displaySnackbar("Logged out successfully!", "success");
-              navigate("/login");
-
-            }
-          }>Logout</MenuItem>
+              return
+            }}
+          >
+            Logout
+          </MenuItem>
         </Menu>
       </Box>
     </Box>
