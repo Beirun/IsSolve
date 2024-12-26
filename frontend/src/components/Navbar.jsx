@@ -298,7 +298,7 @@ const Navbar = ({ logoRoute, isDashboard }) => {
                   navigate(`/report/${notification.rprt_id}`);
                 }}
               >
-                {notification.notification_sender === 0 ? (
+                {notification.notification_sender === -1 || notification.notification_sender === 0 ? (
                   <Avatar sx={{ backgroundColor: "#a1a1a1" }}>
                     <IconCheck size={30} stroke={2.5} color="green" />
                   </Avatar>

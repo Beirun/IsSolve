@@ -314,7 +314,7 @@ const Login = () => {
       } else {
         setSignedInAccount(citizen);
         displaySnackbar("Logged in successfully.", "success");
-        if (citizen.ctzn_id === 0) {
+        if (citizen.ctzn_id === -1) {
           navigate("/admin");
           setIsAdmin(true);
         } else {
